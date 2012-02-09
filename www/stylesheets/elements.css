@@ -1,0 +1,196 @@
+.errors {
+	margin: 0.5em 0;
+	padding: 5px;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	-o-border-radius: 5px;
+	
+	border: 1px solid #DDA0A0;
+	background: #FFC0C0;
+}
+
+.success {
+	margin: 0.5em 0;
+	padding: 5px;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	-o-border-radius: 5px;
+	
+	border: 1px solid #A0DDA0;
+	background: #C0FFC0;
+}
+
+td > .errors {
+	border: none;
+	margin: 0;
+}
+
+dl > dt {
+	float: left;
+	width: 200px;
+	margin-right: 10px;
+	text-align: right;
+	
+	font-weight: bold;
+}
+
+dl > dd {
+	padding-left: 210px;
+}
+
+dl > dd + dd {
+	float: none;
+	clear: both;
+	margin-top: 0.5em;
+}
+
+dl > dd p {
+	font-size: 11px;
+	color: #404040;
+}
+
+dl {
+	margin-bottom: 0.5em;
+	clear: both;
+	overflow: hidden;
+}
+
+fieldset {
+	border: none;
+}
+
+fieldset.buttons input {
+	margin-left: 210px;
+}
+
+input,
+select {
+	width: 200px;
+}
+
+input[type=submit],
+input[type=reset],
+input[type=button],
+input[type=checkbox],
+input[type=radio] {
+	width: auto;
+}
+
+textarea.fullsize {
+	width: 100%;
+	height: 300px;
+}
+
+/* ========== Lists ========== */
+
+table {
+	width: 100%;
+}
+
+th {
+	text-align: left;
+	padding: 7px 8px;
+}
+
+.list,
+table > tbody > tr:first-child > td {
+	border-top: 1px solid #CEEBFF;	
+}
+
+.list > li,
+table > tbody > tr > td,
+table > tbody > tr > th {
+	padding: 7px 8px;
+	
+	border-bottom: 1px solid #CEEBFF;
+	list-style: none;
+	outline: none;
+}
+
+table > tbody > tr.prepended > th,
+table > tbody > tr.prepended > td {
+	border-bottom: none;
+}
+
+.list > li:hover,
+table > tbody > tr:hover > td {
+	background-color: #CEEBFF;
+}
+
+table > tbody > tr.prepended:hover + tr > td {
+	background-color: #CEEBFF;
+}    
+
+.list > li.group-header,
+table > tbody > tr.group-header > td {
+	background-color: #FFD07C !important;
+	border: none !important;
+
+	font-size: 16px;
+	font-weight: bold;
+	color: #800000;
+}
+
+/* ========== Gallery ========== */
+
+.gallery {	
+}
+
+.gallery .day {
+	overflow: hidden;
+	margin-bottom: 20px;
+}
+
+.gallery .day .header {
+	width: 100%;
+	padding: 5px;
+	
+	background: #AADDFF;
+	
+	font-size: 14px;
+	font-weight: bold;	
+}
+
+.gallery .item {
+	float: left;
+	width: 150px;
+	height: 150px;
+	position: relative;
+	overflow: hidden;
+	
+	background: #f1f9ff;
+}
+
+.gallery .item > a {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.gallery .item > a > img {
+	color: transparent;
+	font-size: 0;
+}
+
+.gallery .details {
+	position: absolute;
+	bottom: 0;
+	display: none;
+	width: 100%;
+	
+	background: rgba(0, 0, 0, 0.7);
+}
+
+.gallery .details div:first-child {
+	margin-bottom: 3px;
+}
+
+.gallery .item:hover .details {
+	display: block;
+	padding: 6px;
+	
+	color: #FFFFFF;
+	text-decoration: none;
+}
