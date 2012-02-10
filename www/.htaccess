@@ -1,13 +1,4 @@
 RewriteEngine On
-RewriteRule ^$ index.php?controller=Home&action=index
-RewriteRule ^imprint$ index.php?controller=Home&action=imprint
-RewriteRule ^login$ index.php?controller=Account&action=login
-RewriteRule ^change-password$ index.php?controller=Account&action=changePassword
-RewriteRule ^admin$ index.php?controller=Admin&action=index
-RewriteRule ^admin/clear-cache$ index.php?controller=Admin&action=clearcache
-RewriteRule ^users$ index.php?controller=Users&action=index
-RewriteRule ^users/([0-9]+)$ index.php?controller=Users&action=details&id=$1
-RewriteRule ^users/create$ index.php?controller=Users&action=add
-RewriteRule ^users/([0-9]+)/edit$ index.php?controller=Users&action=edit&id=$1
-RewriteRule ^users/([0-9]+)/delete$ index.php?controller=Users&action=delete&id=$1
-RewriteRule ^users/create-many$ index.php?controller=Users&action=massCreate
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . index.php

@@ -12,6 +12,7 @@ class Request {
 	public $ip;
 	public $userAgent;
 	public $referer;
+	public $parameters;
 	public $controller;
 	public $action;
 	public $data;
@@ -32,6 +33,10 @@ class Request {
 		$request->startTime = microtime(true);
 		$request->url = $_SERVER['REQUEST_URI'];
 		$request->internalURL = substr($request->url, strlen(ROOT_URL));
+		if (($p = strpos($request->internalURL, '?')) !== false)
+			$request->internalURLTrunk = substr($request->internalURL, 0, $p);
+		else
+			$request->internalURLTrunk = $request->internalURL;
 		$request->isHTTPS = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] &&
 			$_SERVER['HTTPS'] != 'off' ? 's' : '';
 		$request->urlPrefix = 'http'.
@@ -52,10 +57,11 @@ class Request {
 	}
 	
 	public function load() {
-		$this->controller = trim($this->get['controller']);
-		$this->action = trim($this->get['action']);
-		if (!$this->action)
-			$this->action = 'index';
+		$this->parameters = Router::resolve($this->internalURLTrunk);
+		$this->parameters = array_merge($this->get, $this->parameters);
+		$this->parameters = array_merge($this->post, $this->parameters);
+		$this->controller = trim($this->parameters['controller']);
+		$this->action = trim($this->parameters['action']);
 			
 		// Session
 		if ($this->cookies->session) {

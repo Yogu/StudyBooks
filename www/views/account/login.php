@@ -22,7 +22,7 @@
 		<p>Diese Internetseite ist nur für registrierte Benutzer verfügbar. Wenn Sie an der Studienfahrt Saint Malo 2011 teilgenommen haben, aber noch keine Zugangsdaten erhalten hast, schreiben Sie bitte eine E-Mail an <a href="mailto:info@yogularm.de">info@yogularm.de</a>.</p>
 	<?php endif; ?>
 	
-	<form action="./anmeldung" method="post">
+	<form action="./login" method="post">
 		<input type="hidden" name="referer" value="<?php echo $request->internalURL; ?>" />
 		<fieldset class="input">
 			<dl>
