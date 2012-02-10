@@ -6,7 +6,7 @@ class Router {
 	
 	private static function getRules() {
 		if (!isset(self::$rules)) {
-			$fileName = ROOT_PATH.'include/Routing.ini';
+			$fileName = ROOT_PATH.'config/routing.ini';
 			$lines = file($fileName, FILE_SKIP_EMPTY_LINES | FILE_IGNORE_NEW_LINES );
 			if (!$lines)
 				throw new Exception("Failed to read rules file");
@@ -112,9 +112,13 @@ class Router {
 			$url = $rule->scheme;
 			$additional = '';
 			foreach ($parameters as $key => $value) {
-				if (array_key_exists($key, $rule->includedParameters))
+				if (array_key_exists($key, $rule->includedParameters)) {
+					$type = $rule->includedParameters[$key];
+					if ($type == '?' && Strings::toLower($rule->defaultParameters[$key]) == Strings::toLower($value))
+						$value = '';
+					
 					$url = preg_replace('/\{'.$key.'[^\}]*}/', rawurlencode($value), $url);
-				else if (!array_key_exists($key, $rule->defaultParameters)) {
+				}else if (!array_key_exists($key, $rule->defaultParameters)) {
 					if (!$additional)
 						$additional = '?';
 					else
@@ -122,6 +126,8 @@ class Router {
 					$additional .=  $key . '=' . rawurlencode($value);
 				}
 			}
+			$url = str_replace('//', '/', $url);
+			$url = trim($url, '/');
 			return $url.$additional;
 		}
 	}

@@ -6,7 +6,7 @@ class Config {
 	
 	public static function load() {
 		if (self::$config === null) {
-			$config = parse_ini_file(ROOT_PATH . 'include/Config.ini', true);
+			$config = parse_ini_file(ROOT_PATH . 'config/config.ini', true);
 			if (!$config)
 				throw new Exception("Failed to load config file");
 			

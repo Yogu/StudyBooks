@@ -1,6 +1,6 @@
 {extends "../_layout.tpl"}
-{block "title"}Welcome{/block}
+{block "title"}{l WELCOME}{/block}
 
-{block "main"}
-<p>Welcome to study books.</p>
+{block "body"}
+<p>{l WELCOME_MESSAGE}</p>
 {/block}

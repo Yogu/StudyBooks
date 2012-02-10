@@ -26,14 +26,14 @@
 	</head>
 	<body>
 		<header>
-			<h1><a href="./">{html $config->site->title}</a></h1>
+			<h1><a href="{url index home}">{html $config->site->title}</a></h1>
 			
 			{if $request->session}
 				<div id="login-box">
-					<div>Logged in as <b>{html $request->user->name}</b></div>
+					<div>{l LOGGED_IN_AS} <b>{html $request->user->name}</b> {l LOGGED_IN_AS_}</div>
 					<div>
-						<form action="./logout" method="post">
-							<input type="submit" name="logout" value="Log out" />
+						<form action="{url login account}" method="post">
+							<input type="submit" name="logout" value="{l LOG_OUT}" />
 						</form>
 					</div>
 				</div>
@@ -42,14 +42,14 @@
 			<nav id="menu">
 				<ul>
 					{if $request->session}
-						<li><a href="./">Home</a></li>
-						<li><a href="./change-password">Passwort ändern</a></li>
+						<li><a href="{url index home}">{l MENU_HOME}</a></li>
+						<li><a href="{url changePassword account}">{l MENU_CHANGE_PASSWORD}</a></li>
 						{if $request->user->role == 'admin'}
-							<li><a href="./admin">Administration</a></li>
-							<li><a href="./users">Benutzerverwaltung</a></li>
+							<li><a href="{url index admin}">{l MENU_ADMINISTRATION}</a></li>
+							<li><a href="{url index users}">{l MENU_USERS}</a></li>
 						{/if}
 					{else}
-						<li><a href="./logout">Log in</a></li>
+						<li><a href="{url login account}">{l LOG_IN}</a></li>
 					{/if}
 				</ul>
 			</nav>
@@ -58,13 +58,13 @@
 		<div id="content">
 			<h2>{block "title"}{/block}</h2>
 			
-			<?php
+			<div id="body">
 				{block "body"}{/block}
-			?>
+			</div>
 		</div>
 		
 		<footer>
-			<p><a href="./imprint">Imprint</a></p>
+			<p><a href="{url imprint home}">{l IMPRINT}</a></p>
 		</footer>
 	</body>
 </html>
