@@ -50,7 +50,7 @@ define('ROOT_PATH', dirname(__FILE__).'/../');
 define('ROOT_URL', substr($_SERVER['SCRIPT_NAME'], 0, strrpos($_SERVER['SCRIPT_NAME'], '/') + 1));
 
 /* autoload */
-function __autoload($className) {
+function autoload($className) {
 	$paths = array('include', 'models', 'controllers');
 	
 	foreach ($paths as $path) {
@@ -61,6 +61,7 @@ function __autoload($className) {
 		}
 	}
 }
+spl_autoload_register(autoload);
 
 /* undo magic quotes */
 if (get_magic_quotes_gpc()) {
@@ -78,8 +79,11 @@ if (get_magic_quotes_gpc()) {
     }
     unset($process);
 }
-
+			
 Config::load();
 setlocale(LC_ALL, Config::$config->general->locale);
+
+// Libraries
+require_once(ROOT_PATH.'libraries/dwoo/dwooAutoload.php');
 
 ?>

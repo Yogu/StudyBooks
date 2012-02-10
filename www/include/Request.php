@@ -15,7 +15,6 @@ class Request {
 	public $parameters;
 	public $controller;
 	public $action;
-	public $data;
 	public $startTime;
 	public $isHTTPS;
 	
@@ -72,7 +71,10 @@ class Request {
 			} 
 		}
 		
-		$this->data = new stdClass();
+		$this->data = new Dwoo_Data();
+		$this->data->config = Config::$config;
+		$this->data->rootURL = ROOT_URL;
+		$this->data->request = $this;
 	}
 	
 	public function getResponse() {
