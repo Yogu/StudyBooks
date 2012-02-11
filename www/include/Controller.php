@@ -30,6 +30,7 @@ class Controller {
 
 	public function __construct(Request $request) {
 		$this->request = $request;
+		$this->data = $request->data;
 	}
 
 	protected function redirection($url = null, $code = 303) {
@@ -76,4 +77,4 @@ class Controller {
 	}
 }
 
-?>
+

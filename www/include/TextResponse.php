@@ -52,4 +52,4 @@ class TextResponse extends Response {
 	}
 }
 
-?>
+

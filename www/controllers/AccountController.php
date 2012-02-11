@@ -59,5 +59,3 @@ class AccountController extends Controller {
 		return $this->view();
 	}
 }
-
-?>

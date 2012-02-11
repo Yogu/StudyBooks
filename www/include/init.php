@@ -87,4 +87,3 @@ setlocale(LC_ALL, Config::$config->general->locale);
 // Libraries
 require_once(ROOT_PATH.'libraries/dwoo/dwooAutoload.php');
 
-?>

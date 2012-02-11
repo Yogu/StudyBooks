@@ -76,6 +76,11 @@ class Router {
 	}
 	
 	public static function getURL($parameters) {
+		if (isset($parameters['controller']))
+			$parameters['controller'] = Strings::toLower($parameters['controller']);
+		if (isset($parameters['view']))
+			$parameters['view'] = Strings::toLower($parameters['view']);
+		
 		$rules = self::getRules();
 		foreach ($rules as $rule) {
 			// If some parameters must match exactly, check them
@@ -133,4 +138,4 @@ class Router {
 	}
 }
 
-?>
+

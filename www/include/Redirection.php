@@ -69,4 +69,4 @@ class Redirection extends Response {
 	}
 }
 
-?>
+

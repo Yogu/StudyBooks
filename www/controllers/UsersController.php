@@ -180,5 +180,3 @@ class UsersController extends Controller {
 		return $mail->send($user->email, $user->name);
 	}
 }
-
-?>

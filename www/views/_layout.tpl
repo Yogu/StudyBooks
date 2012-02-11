@@ -44,6 +44,7 @@
 					{if $request->session}
 						<li><a href="{url index home}">{l MENU_HOME}</a></li>
 						<li><a href="{url changePassword account}">{l MENU_CHANGE_PASSWORD}</a></li>
+						<li><a href="{url index tree}">{l MENU_TREE}</a></li>
 						{if $request->user->role == 'admin'}
 							<li><a href="{url index admin}">{l MENU_ADMINISTRATION}</a></li>
 							<li><a href="{url index users}">{l MENU_USERS}</a></li>
