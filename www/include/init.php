@@ -2,7 +2,7 @@
 define('IN_APP', true);
 
 /* error handling */
-set_error_handler("error", (E_ALL | E_STRICT) & ~E_NOTICE);
+set_error_handler("error", (E_ALL | E_STRICT)/* & ~E_NOTICE*/);
 function errnoToString($errno) {
 	switch ($errno) {
 		case E_NOTICE:
@@ -25,7 +25,7 @@ function errnoToString($errno) {
 
 function error($errno, $errstr, $errfile, $errline) {
 	global $isInErrorHandler;
-	if (!$isInErrorHandler && isset(Config::$config)) {
+	if (!$isInErrorHandler && class_exists('Config') && isset(Config::$config)) {
 		$isInErrorHandler = true;
 		try {
 			DataBase::query("INSERT INTO ".Config::$config->dataBase->prefix."log ".
@@ -35,7 +35,7 @@ function error($errno, $errstr, $errfile, $errline) {
 	}
 	
 	// If failed to load config, show error message
-	if (!isset(Config::$config) || !Config::$config->general->isDebugMode) {
+	if (!class_exists('Config') || !isset(Config::$config) || !Config::$config->general->isDebugMode) {
 		if ($errno & (E_ERROR | E_CORE_ERROR | E_ERROR | E_USER_ERROR))
 			exit;
 		else

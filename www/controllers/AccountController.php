@@ -40,7 +40,7 @@ class AccountController extends Controller {
 	public function changePassword() {
 		if ($r = $this->requireLogin()) return $r;
 		
-		if ($this->request->post['submit']) {
+		if (isset($this->request->post['submit'])) {
 			$oldPassword = $this->request->post['oldPassword'];
 			$newPassword = $this->request->post['newPassword'];
 			$passwordConfirmation = $this->request->post['passwordConfirmation'];

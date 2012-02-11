@@ -30,7 +30,7 @@ class Session {
 			$session->startTime = $item->startTime;
 			$session->lastAccessTime = $item->lastAccessTime;
 			$session->ip = $item->ip;
-			$session->userAgent = $userAgent;
+			$session->userAgent = $item->userAgent;
 			$session->user = new User();
 			$session->user->id = $item->userID;
 			$session->user->name = $item->userName;
