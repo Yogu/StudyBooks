@@ -2,21 +2,13 @@
 defined('IN_APP') or die;
 
 class Model {
-	public function save() {
-		if ($this->id)
-			$this->update();
-		else
-			$this->insert();
+	public function __construct($data = null) {
+		if (is_array($data)) {
+			foreach ($data as $k => $v) {
+				$this->$k = $v;
+			}
+		}
 	}
-	
-	public function insertQuery($values) {
-		
-	}
-	
-	/**
-	 * Returns the formatted table name (DataBase::table() already called)
-	 */
-	public abstract function table();
 }
 
 ?>

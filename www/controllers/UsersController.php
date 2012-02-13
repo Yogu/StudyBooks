@@ -5,7 +5,9 @@ class UsersController extends Controller {
 	public function index() {
 		if ($r = $this->requireAdmin()) return $r;
 		
-		$this->data->users = User::getList("ORDER BY name ASC");
+		$this->data->users = Query::from(User::table())
+			->orderBy('name')
+			->all();
 		
 		return $this->view();
 	}

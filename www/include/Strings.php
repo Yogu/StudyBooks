@@ -123,7 +123,67 @@ class Strings {
 		if ($index == 1 && $bytes == 1)
 			$index = 0;
 		return $int.$fractional.' '.$units[$index];
-	} 
+	}
+	
+	/**
+	 * Checks whether $str starts with $start.
+	 * 
+	 * The comparision is done by byte-by-byte and thus case-sensitive.
+	 * 
+	 * @param string $str The string whose start to check
+	 * @param string $start The string to compare with $str's start
+	 * @return boolean true, if $str starts with $start, false otherwise
+	 */
+	public static function startsWidth($str, $start) {
+		return substr($str, 0, strlen($start)) == $start;
+	}
+	
+	/**
+	 * Checks whether $str ends with $end.
+	 * 
+	 * The comparision is done by byte-by-byte and thus case-sensitive.
+	 * 
+	 * @param string $str The string whose end to check
+	 * @param string $end The string to compare with $str's end
+	 * @return boolean true, if $str ends with $end, false otherwise
+	 */
+	public static function endsWidth($str, $end) {
+		return substr($str, -strlen($end)) == $end;
+	}
+	
+	/**
+	 * Returns the characters of $str until the first occurance of $find.
+	 * 
+	 * If $find is not found in $str, the whole $str is returned.
+	 * 
+	 * @param string $str the string to search in
+	 * @param string $find the string to search for
+	 * @return string the string until the first occurance of $find
+	 */
+	public static function leftOf($str, $find) {
+		$pos = strpos($str, $find);
+		if ($pos !== false)
+			return substr($str, 0, $pos);
+		else
+			return $str;
+	}
+	
+	/**
+	 * Returns the characters of $str beginning at the end of the first occurance of $find.
+	 * 
+	 * If $find is not found in $str, the whole $str is returned.
+	 * 
+	 * @param string $str the string to search in
+	 * @param string $find the string to search for
+	 * @return string the string right of the first occurance of $find
+	 */
+	public static function rightOfFirst($str, $find) {
+		$pos = strpos($str, $find);
+		if ($pos !== false)
+			return substr($str, $pos + strlen($find));
+		else
+			return $str;
+	}
 }
 
 

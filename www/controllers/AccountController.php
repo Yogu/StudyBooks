@@ -4,7 +4,7 @@ defined('IN_APP') or die;
 class AccountController extends Controller {
 	public function login() {
 		$data = new stdClass();
-		if ($this->request->post['login']) {
+		if (isset($this->request->post['login'])) {
 			$userName = $this->request->post['user'];
 			$password = $this->request->post['password'];
 			$user = User::getByName($userName);
@@ -44,6 +44,7 @@ class AccountController extends Controller {
 			$oldPassword = $this->request->post['oldPassword'];
 			$newPassword = $this->request->post['newPassword'];
 			$passwordConfirmation = $this->request->post['passwordConfirmation'];
+			$this->data->errors = '';
 			if (!$this->request->user->checkPassword($oldPassword))
 				$this->data->errors .= '<p><i>Current password</i> is wrong.</p>';
 			if (!$newPassword)

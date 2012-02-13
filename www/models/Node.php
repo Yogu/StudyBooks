@@ -1,48 +1,40 @@
 <?php
 defined('IN_APP') or die;
 
-class Node {
+class Node extends Model {
 	public $id;
 	public $parentID;
+	public $order;
 	public $isLeaf;
 	public $type;
 	public $createTime;
 	public $editTime;
 	public $title;
 	
-	public static function getList($parentID, $condition = '', $offset = 0, $count = null, $params = array()) {
-		if ($count === null)
-			$count = 2147483647;
-		$result = DataBase::query(
-			"SELECT id, isLeaf, type, title, ".
-				"UNIX_TIMESTAMP(createTime) AS createTime, ".
-				"UNIX_TIMESTAMP(editTime) AS editTime ".
-			"FROM ".DataBase::table('Nodes')." ".
-			"WHERE parentID = #0".($condition ? " AND $condition " : ' ').
-			"LIMIT $offset, $count", 
-			array_merge(array($parentID), $params));
-		$list = array();
-		while ($item = mysql_fetch_object($result)) {
-			$node = new Node();
-			$node->id = $item->id;
-			$node->parentID = $parentID;
-			$node->isLeaf = $item->isLeaf;
-			$node->type = $item->type;
-			$node->createTime = $item->createTime;
-			$node->editTime = $item->editTime;
-			$node->title = $item->title;
-			$list[] = $node;
+	public static function table() {
+		static $table;
+		if (!isset($table)) {
+			$table = new Table("Node", "Nodes", array(
+				'id',
+				'parentID',
+				'order',
+				'isLeaf',
+				'type',
+				'createTime' => ':time',
+				'editTime' => ':time',
+				'title'));
 		}
-		return $list;
+		return $table;
 	}
 	
-	public static function getSingle($condition, $params = null) {
-		$list = self::getList($condition, 0, 1, $params);
-		return count($list) ? $list[0] : null;
+	public function __construct($data = null) {
+		parent::__construct($data);
 	}
 	
 	public static function getByID($id) {
-		return self::getSingle('WHERE id = #0', (int)$id);
+		return Query::from(self::table())
+			->whereEquals('id', (int)$id)
+			->first();
 	}
 	
 	public function insertAsLast() {

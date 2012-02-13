@@ -20,7 +20,10 @@ class TreeController extends Controller {
 	}
 	
 	private function loadNodes($parentID = 0) {
-		$nodes = Node::getList($parentID);
+		$nodes = Query::from(Node::table())
+			->whereEquals('parentID', $parentID)
+			->orderBy('order')
+			->all();
 		foreach ($nodes as &$node) {
 			$node = array($node, $this->loadNodes($node->id));
 		}

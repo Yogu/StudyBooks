@@ -1,52 +1,47 @@
 <?php
 defined('IN_APP') or die;
 
-class User {
+class User extends Model {
 	public $id;
 	public $name = '';
 	public $email = '';
-	public $hashedPassowrd = '';
+	public $hashedPassword = '';
 	public $rawPassword = '';
 	public $createTime = 0;
 	public $lastLoginTime = 0;
 	public $role = 'poster';
 	public $isBanned = false;
 	
-	public static function getList($condition = '', $offset = 0, $count = 2147483647, $params = null) {
-		$result = DataBase::query(
-			"SELECT id, name, email, password, role, isBanned, ".
-				"UNIX_TIMESTAMP(createTime) AS createTime, ".
-				"UNIX_TIMESTAMP(lastLoginTime) AS lastLoginTime ".
-			"FROM ".DataBase::table('Users')." ".
-			$condition.' '.
-			"LIMIT $offset, $count", $params);
-		$list = array();
-		while ($item = mysql_fetch_object($result)) {
-			$user = new User();
-			$user->id = $item->id;
-			$user->name = $item->name;
-			$user->email = $item->email;
-			$user->role = $item->role;
-			$user->isBanned = $item->isBanned;
-			$user->hashedPassword = $item->password;
-			$user->createTime = $item->createTime;
-			$user->lastLoginTime = $item->lastLoginTime;
-			$list[] = $user;
+	public static function table() {
+		static $table;
+		if (!isset($table)) {
+			$table = new Table("User", "Users", array(
+				'id',
+				'name',
+				'email',
+				'hashedPassword' => 'password',
+				'role',
+				'isBanned',
+				'createTime' => ':time',
+				'lastLoginTime' => ':time'));
 		}
-		return $list;
+		return $table;
 	}
 	
-	public static function getSingle($condition, $params = null) {
-		$list = self::getList($condition, 0, 1, $params);
-		return count($list) ? $list[0] : null;
+	public function __construct($data = null) {
+		parent::__construct($data);
 	}
 	
 	public static function getByID($id) {
-		return self::getSingle('WHERE id = #0', (int)$id);
+		return Query::from(self::table())
+			->whereEquals('id', (int)$id)
+			->first();
 	}
 	
 	public static function getByName($name) {
-		return self::getSingle('WHERE name = #0', (string)$name);
+		return Query::from(self::table())
+			->whereEquals('name', $name)
+			->first();
 	}
 	
 	public static function hashPassword($rawPassword) {

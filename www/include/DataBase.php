@@ -49,7 +49,7 @@ class DataBase {
 	
 	public static function escape($text) {
 		self::init();
-		return mysql_real_escape_string($text);
+		return mysql_real_escape_string((String)$text);
 	}
 	
 	public static function getInsertID() {
