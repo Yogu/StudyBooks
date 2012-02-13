@@ -11,4 +11,4 @@ The project uses PHP as a server-side scripting language and on the client side 
 Development Status
 ------------------
 
-Not even begun coding.
+Still working on framework (basic MVC, OO-SQL wrapper, multi-language support, configuration, user management), but that will be finished soon. The basic concepts for content tree are adopted in the data base structure.
