@@ -11,6 +11,9 @@ class Node extends Model {
 	public $editTime;
 	public $title;
 	
+	private $content;
+	private $dbTitle;
+	
 	public static function table() {
 		static $table;
 		if (!isset($table)) {
@@ -29,6 +32,7 @@ class Node extends Model {
 	
 	public function __construct($data = null) {
 		parent::__construct($data);
+		$this->dbTitle = $this->title;
 	}
 	
 	public static function getByID($id) {
@@ -50,16 +54,40 @@ class Node extends Model {
 		$this->id = DataBase::getInsertID();
 		$this->createTime = time();
 		$this->editTime = time();
+		$this->dbTitle = $this->title;
+		
+		if ($this->content) {
+			$this->content->setNodeID($this->id);
+			$this->content->insert(); 
+		}
 	}
 	
-	public function setTitle($title) {
-		DataBase::query(
-			"UPDATE ".DataBase::table('Nodes')." ".
-			"SET title = #0, editTime = NOW() ".
-			"WHERE id = #1",
-			array($title, $this->id));
-		$this->title = $title;
-		$this->editTime = time();
+	public function saveChanges() {
+		if ($this->title != $this->dbTitle) {
+			DataBase::query(
+				"UPDATE ".DataBase::table('Nodes')." ".
+				"SET title = #0, editTime = NOW() ".
+				"WHERE id = #1",
+				array($this->title, $this->id));
+			$this->editTime = time();
+			$this->dbTitle = $this->title;
+		}
+	}
+	
+	public function getContent() {
+		if (!isset($this->content)) {
+			switch ($this->type) {
+				case 'text':
+					if ($this->id)
+						$this->content = NodeText::forNode($this);
+					else
+						$this->content = new NodeText();
+					break;
+				default:
+					return null;
+			}
+		}
+		return $this->content;
 	}
 	
 	public function moveUp($delta = 1) {

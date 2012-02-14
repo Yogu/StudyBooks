@@ -8,12 +8,7 @@
 	
 		<?php
 			$stylesheets = array('reset.css', 'general.css', 'layout.css', 'elements.css');
-			$scripts = array('jquery-1.5.2.min.js');
-			
-			if (isset($data->stylesheets))
-				$stylesheets = array_merge($stylesheets, $data->stylesheets);
-			if (isset($data->scripts))
-				$scripts = array_merge($scripts, $data->scripts);
+			$scripts = array('jquery-1.5.2.min.js');			
 		
 			foreach ($stylesheets as $stylesheet)
 				echo '		<link rel="stylesheet" type="text/css" href="./stylesheets/'.htmlspecialchars($stylesheet).'" />'."\n";
@@ -21,6 +16,7 @@
 			foreach ($scripts as $script)
 				echo '		<script type="text/javascript" src="./scripts/'.htmlspecialchars($script).'"></script>'."\n"; 
 		?>
+		{block "head"}{/block}
 		
 		<title>{html ($config->site->title)}  – {block "title"}{/block}</title>
 	</head>

@@ -36,8 +36,11 @@ class View extends Response {
 		$data = $this->data;
 		$layout = '_layout';
 
+		$dwoo = self::getDwoo();
 		$tpl = new Dwoo_Template_File($this->fileName);
-		return self::getDwoo()->get($tpl, $this->data);
+		$data = new Dwoo_Data();
+		$data->setData((array)$this->data);
+		return $dwoo->get($tpl, $data);
 		
 		/*ob_start();
 		 include($this->fileName);
@@ -86,6 +89,7 @@ class View extends Response {
 
 	private static function getDwoo() {
 		if (!isset(self::$dwoo)) {
+			Lib::loadDwoo();
 			self::$dwoo = new \Dwoo();
 			$dwooPath = ROOT_PATH.'cache/dwoo';
 			if (!file_exists($dwooPath))

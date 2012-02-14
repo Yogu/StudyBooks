@@ -33,15 +33,24 @@ class Controller {
 		$this->data = $request->data;
 	}
 
-	protected function redirection($url = null, $code = 303) {
+	protected function redirectToURL($url, $code = 303) {
 		return new Redirection($this->request, $url, $code);
+	}
+
+	protected function redirection($action= '', $controller = '', $code = 303, array $parameters = array()) {
+		if (!$action)
+			$action = $this->request->action;
+		if (!$controller)
+			$controller = $this->request->controller;
+		$url = Router::getURL(array_merge($parameters, array('action' => $action, 'controller' => $controller)));
+		return $this->redirectToURL($url, $code);
 	}
 
 	protected function view($action = '', $controller = '') {
 		if (!$action)
-		$action = $this->request->action;
+			$action = $this->request->action;
 		if (!$controller)
-		$controller = $this->request->controller;
+			$controller = $this->request->controller;
 		return new View($this->request, $action, $controller);
 	}
 
@@ -59,21 +68,21 @@ class Controller {
 
 	protected function requireLogin() {
 		if (!$this->request->session)
-		return $this->view('login', 'account');
+			return $this->view('login', 'account');
 	}
 
 	protected function requirePoster() {
 		if (!$this->request->session)
-		return $this->view('login', 'account');
+			return $this->view('login', 'account');
 		if ($this->request->user->role == 'guest')
-		return new View($this->request, '403', 'errors', 403);
+			return new View($this->request, '403', 'errors', 403);
 	}
 
 	protected function requireAdmin() {
 		if (!$this->request->session)
-		return $this->view('login', 'account');
+			return $this->view('login', 'account');
 		if ($this->request->user->role != 'admin')
-		return new View($this->request, '403', 'errors', 403);
+			return new View($this->request, '403', 'errors', 403);
 	}
 }
 

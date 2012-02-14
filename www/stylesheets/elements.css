@@ -76,6 +76,14 @@ input[type=button],
 input[type=checkbox],
 input[type=radio] {
 	width: auto;
+	padding: 3px 8px;
+}
+
+input[type=submit].default,
+input[type=reset].default,
+input[type=button].default,
+button.default {
+	font-weight: bold;
 }
 
 textarea.fullsize {
@@ -193,4 +201,198 @@ table > tbody > tr.group-header > td {
 	
 	color: #FFFFFF;
 	text-decoration: none;
+}
+
+/* ========== Book ========== */
+
+.book h3 {
+	color: #C00000;
+	text-align: center;
+	/*background: #FFDDDD;*/
+}
+
+.book h4 {
+	color: #0000C0;
+	border-bottom: 1px solid #0000C0;
+	/*background: #E0E0FF;*/
+}
+
+.book h5 {
+	color: #008000;
+	/*background: #DDFFDD;*/
+}
+
+.book h3,
+.book h4,
+.book h5,
+.book h6,
+.book h7,
+.book h8 {
+	margin: 0;
+	padding: 3px;
+}
+
+.book h3 a,
+.book h4 a,
+.book h5 a,
+.book h6 a,
+.book h7 a,
+.book h8 a {
+	display: block;
+}
+
+.book h3 a:hover,
+.book h4 a:hover,
+.book h5 a:hover,
+.book h6 a:hover,
+.book h7 a:hover,
+.book h8 a:hover {
+	text-decoration: none;
+}
+
+.book section {
+	margin-bottom: 1em;
+}
+
+.book-row {
+	margin: 1em 0;
+	overflow: visible;
+	position: relative;
+}
+
+.book-row > div:last-child {
+	clear: both;
+}
+
+.book-row:hover {
+	background: #F4F4F4;
+}
+
+.book-row-with-form {
+	background: #E0E0E0;
+}
+
+.book-row-with-form:hover {
+	background: #D0D0D0;
+}
+
+.book-content {
+	float: left;
+	width: 70%;
+	padding-right: 40px;
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+}
+
+.book-toolbar {
+	float: left;
+	margin-left: -30px;
+	width: 0;
+}
+
+.book-meta {
+	float: left;
+	width: 30%;
+	
+	color: #808080;
+}
+
+.book-toolbar {
+	display: none;
+	padding-top: 2px;
+}
+
+.book-row:hover .book-toolbar {
+	display: block;
+}
+
+.book-toolbar a {
+	display: none;
+	width: 16px;
+	height: 16px;
+	
+	content: '';
+	color: transparent;
+	font-size: 0;
+}
+
+.book-toolbar:hover a {
+	margin-right: 10px;
+}
+
+.book-toolbar:hover a:last-child {
+	margin-right: 0;
+}
+
+.book-toolbar:hover div {
+	padding: 5px;
+	margin-left: -6px;
+	margin-top: -6px;
+	position: absolute;
+	z-index: 1;
+	
+	border: 1px solid #808080;
+	border: 1px solid rgba(0, 0, 0, 0.5);
+	background: #FFFFFF;
+	background: rgba(255, 255, 255, 0.5);
+	box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+	-moz-box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+	-webkit-box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+	border-radius: 3px;
+	-moz-border-radius: 3px;
+	-webkit-border-radius: 3px;
+}
+
+.book-toolbar a:first-child,
+.book-toolbar:hover a {
+	display: block;
+	float: left;
+}
+
+.book-edit {	
+	background: url(../images/edit.png) no-repeat center center;
+}
+
+.book-add-after {	
+	background: url(../images/add-after.png) no-repeat center center;
+}
+
+.book-add-before {	
+	background: url(../images/add-before.png) no-repeat center center;
+}
+
+.book-add-inside {	
+	background: url(../images/add-inside.png) no-repeat center center;
+}
+
+/* ========== Book Form ========== */
+
+.book-form-choice {
+	overflow: hidden;
+}
+
+.book-form-choice a {
+	float: left;
+	padding: 5px;
+}
+
+.book-form textarea,
+.book-form input {
+	width: 100%;
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+}
+
+.book-form textarea {
+	height: 100px;
+}
+
+.book-form input[type="submit"] {
+	width: auto;
+}
+
+.book-form .buttons {
+	text-align: right;
 }

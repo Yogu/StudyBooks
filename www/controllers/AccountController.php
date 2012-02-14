@@ -21,7 +21,7 @@ class AccountController extends Controller {
 					$this->request->cookies->session = $session->key;
 					$this->request->session = $session;
 					$this->request->user = $user;
-					return $this->redirection('');
+					return $this->redirection('index', 'Home');
 				}
 			} else 
 				$this->data->isFailed = true;

@@ -7,6 +7,7 @@ class Request {
 	public $absoluteURL;
 	public $get;
 	public $post;
+	public $method;
 	public $cookies;
 	public $files;
 	public $ip;
@@ -46,6 +47,7 @@ class Request {
 		$request->absoluteURL = $request->urlPrefix.$request->internalURL;
 		$request->get = $_GET;
 		$request->post = $_POST;
+		$request->method = strtoupper($_SERVER['REQUEST_METHOD']);
 		$request->cookies = new CookieManager($_COOKIE);
 		$request->files = $_FILES;
 		$request->ip = $_SERVER['REMOTE_ADDR'];
@@ -71,7 +73,7 @@ class Request {
 			} 
 		}
 		
-		$this->data = new Dwoo_Data();
+		$this->data = new stdclass();
 		$this->data->config = Config::$config;
 		$this->data->rootURL = ROOT_URL;
 		$this->data->request = $this;
@@ -81,7 +83,11 @@ class Request {
 		if ($this->controller) {
 			$controllerObj = Controller::getController($this, $this->controller);
 			if ($controllerObj) {
-				$method = array($controllerObj, $this->action);
+				// Methods beginning with an underscore are no actions, e.g. constructors
+				if (strlen($this->action) && $this->action[0] != '_')
+					$method = array($controllerObj, $this->action);
+				else
+					$method = null;
 				if (is_callable($method))
 					return call_user_func($method);
 				else {

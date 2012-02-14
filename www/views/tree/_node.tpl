@@ -1,9 +1,11 @@
-{if count($nodes)}
+{if arrcount($nodes)}
 	<ul>
 		{foreach $nodes node}
 			<li>
-				<a href="{url details Tree array(id=$node[0]->id)}">{html $node[0]->title}</a>
-				{if count($node[1])}
+				{if $node[0]->type != 'folder'}<a href="{url details Tree array(id=$node[0]->id)}">{/if}
+					{html $node[0]->title}
+				{if $node[0]->type != 'folder'}</a>{/if}
+				{if arrcount($node[1])}
 					{include file='_node.tpl' nodes=$node[1]}
 				{/if}
 			</li>
