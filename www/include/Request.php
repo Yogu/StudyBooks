@@ -60,7 +60,6 @@ class Request {
 	public function load() {
 		$this->parameters = Router::resolve($this->internalURLTrunk);
 		$this->parameters = array_merge($this->get, $this->parameters);
-		$this->parameters = array_merge($this->post, $this->parameters);
 		$this->controller = trim($this->parameters['controller']);
 		$this->action = trim($this->parameters['action']);
 			
@@ -102,6 +101,20 @@ class Request {
 			}
 		} else
 			return new View($this, '404', 'errors');
+	}
+	
+	public function param($name) {
+		if (isset($this->parameters[$name]))
+			return $this->parameters[$name];
+		else
+			return null;
+	}
+	
+	public function post($name) {
+		if (isset($this->post[$name]))
+			return $this->post[$name];
+		else
+			return null;
 	}
 }
 

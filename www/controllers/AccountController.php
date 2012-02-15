@@ -21,13 +21,18 @@ class AccountController extends Controller {
 					$this->request->cookies->session = $session->key;
 					$this->request->session = $session;
 					$this->request->user = $user;
-					return $this->redirection('index', 'Home');
+					
+					if (isset($this->request->post['referer']))
+						$url = $this->request->post['referer'];
+					else
+						$url = $this->request->internalURL;
+					return $this->redirectToURL($url);
 				}
 			} else 
 				$this->data->isFailed = true;
 		}
 		
-		if ($this->request->session && $this->request->post['logout']) {
+		if ($this->request->session && isset($this->request->post['logout'])) {
 			$this->request->session->logout();
 			$this->request->cookies->session = '';
 			$this->request->session = null;

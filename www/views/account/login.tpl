@@ -6,7 +6,7 @@
 	<p>{l LOGIN_LOGGED_IN_AS} <b>{html $request->user->name}</b>.</p>
 	<p><a href="./">» {l BACK_TO_HOME}</a></p>
 	<form action="{url login account}" method="post">
-		<input type="submit" name="logout" value="{l LOGOUT}" />
+		<input type="submit" name="logout" value="{l LOG_OUT}" />
 	</form>
 {else}
 	{if $isFailed}

@@ -5,7 +5,7 @@ $(function() {
 		});
 	
 		$('.book-add-after').click(function(e) {
-			e.preventDefault();
+			//e.preventDefault();
 		});
 		
 		$('.book-add-before').click(function(e) {

@@ -5,6 +5,7 @@ class Node extends Model {
 	public $id;
 	public $parentID;
 	public $order;
+	public $depth;
 	public $isLeaf;
 	public $type;
 	public $createTime;
@@ -22,6 +23,7 @@ class Node extends Model {
 				'parentID',
 				'order',
 				'isLeaf',
+				'depth',
 				'type',
 				'createTime' => ':time',
 				'editTime' => ':time',
@@ -49,8 +51,9 @@ class Node extends Model {
 	private function insert() {
 		DataBase::query(
 			"INSERT INTO ".DataBase::table('Nodes')." ".
-			"SET parentID = #0, isLeaf = #1, type = #2, createTime = NOW(), editTime = NOW() ",
-			array($this->parentID, $this->isLeaf, $this->type));
+			"SET parentID = #0, isLeaf = #1, type = #2, depth = #3, ".
+				"createTime = NOW(), editTime = NOW() ",
+			array($this->parentID, $this->isLeaf, $this->type, $this->depth));
 		$this->id = DataBase::getInsertID();
 		$this->createTime = time();
 		$this->editTime = time();
@@ -171,7 +174,10 @@ class Node extends Model {
 		if (!$id)
 			throw new Exception("This node is not inserted");
 			
-		return self::getList($this->id);
+		return Query::from(self::table())
+			->whereEquals('parentID', $this->id)
+			->orderBy('order')
+			->all();
 	}
 	
 	public function createChildHeading($title) {
@@ -183,6 +189,7 @@ class Node extends Model {
 		$node->type = 'heading';
 		$node->isLeaf = false;
 		$node->title = $title;
+		$node->depth = $this->depth + 1;
 		return $node;
 	}
 	
@@ -194,6 +201,7 @@ class Node extends Model {
 		$node->parentID = $id;
 		$node->type = $type;
 		$node->isLeaf = true;
+		$node->depth = $this->depth + 1;
 		return $node;
 	}
 	
@@ -203,6 +211,7 @@ class Node extends Model {
 		$node->type = 'heading';
 		$node->isLeaf = false;
 		$node->title = $title;
+		$node->depth = 0;
 		return $node;
 	}
 	
@@ -217,6 +226,25 @@ class Node extends Model {
 			return $maxOrder;
 		} else
 			return null;
+	}
+	
+	public function updateDepthRecursively() {
+		self::updateAllDepths($this->id, $this->depth + 1);
+	}
+	
+	public static function updateAllDepths($id = 0, $rootDepth = 0) {
+		DataBase::query(
+			"UPDATE ".DataBase::table('Nodes')." ".
+			"SET depth = '$rootDepth' ".
+			"WHERE parentID = '$id'");
+		
+		$nodes = Query::from(self::table())
+			->whereEquals('parentID', $id)
+			->select('depth', 'id')
+			->all();
+		foreach ($nodes as $node) {
+			$node->updateDepthRecursively();
+		}
 	}
 }
 

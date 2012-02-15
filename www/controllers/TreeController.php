@@ -34,9 +34,9 @@ class TreeController extends Controller {
 		// The node to edit
 		$node = Node::getByID($this->request->parameters['node']);
 		if (!$node)
-			$this->redirection('details', array('id' => $book->id));
-			
-		else if ($this->request->method == 'POST') {
+			return $this->redirection('details', array('id' => $book->id));
+		
+		if ($this->request->method == 'POST') {
 			if (!isset($this->request->post['cancel'])) {
 				$this->readPostField('title', $node->title);
 				switch ($node->type) {
@@ -57,6 +57,62 @@ class TreeController extends Controller {
 		$this->data->book = $book;
 		
 		return $this->view('details');
+	}
+	
+	public function add() {
+		if ($r = $this->requirePoster()) return $r;
+		
+		$book = Node::getByID($this->request->parameters['id']);
+		if (!$book || $book->type == 'folder')
+			$this->redirection('index');
+
+		// The after which to add the new node
+		$reference = Node::getByID($this->request->param('after'));
+		if (!$reference)
+			$this->redirection('details', 'Tree', 303, array('id' => $book->id));
+			
+		$this->data->nodes = $this->loadNodes($book->id, true);
+		
+		// TODO: work in progress
+		$newNode = new Node();
+		$type = $this->request->param('type');
+		switch ($type) {
+			case 'heading1':
+			case 'heading2':
+			case 'heading3':
+			case 'heading4':
+				$referenceDepth = $reference->depth - $book->depth;
+				$newDepth = (int)substr($type, strlen('heading'));
+				$newNode->type = 'heading';
+				$newNode->isLeaf = false;
+				$newNode->parentID = 0;
+				break;
+			case 'text':	
+				$newNode->type = 'text';
+				$newNode->isLeaf = true;
+				$newNode->parentID = $reference->parentID;
+				$newNode->order = $reference->order + 1;
+				breaK;
+		}
+
+		if (isset($this->request->post['cancel'])) {
+			return $this->redirectToURL(Router::getURL(
+				array('id' => $book->id, 'controller' => 'Tree', 'action' => 'details')).'#n'.$reference->id);
+		}
+		
+		$this->data->adding = true;
+		$this->data->reference = $reference;
+		$this->data->newNode = $newNode;
+		$this->data->book = $book;
+		
+		return $this->view('details');
+	}
+	
+	public function updateDepth() {
+		if ($r = $this->requireAdmin()) return $r;
+		
+		Node::updateAllDepths();
+		return new TextResponse("Updated depths.");
 	}
 	
 	private function loadNodes($parentID = 0, $onlyOutline = false) {

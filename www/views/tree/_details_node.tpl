@@ -22,11 +22,13 @@
 			<div class="book-toolbar">
 				<div>
 					<a class="book-edit" href="{url edit Tree array(id=$book->id node=$node[0]->id)}#form" title="{l NODE_EDIT_TITLE}">{l NODE_EDIT}</a>
-					<a class="book-add-after" href="{url add Tree array(id=$book->id node=$node[0]->id pos=after)}#form" title="{l NODE_ADD_AFTER_TITLE}">{l NODE_ADD_AFTER}</a>
+					<a class="book-add-after" href="{url add Tree array(id=$book->id after=$node[0]->id)}#form" title="{l NODE_ADD_AFTER_TITLE}">{l NODE_ADD_AFTER}</a>
+					{*
 					<a class="book-add-before" href="{url add Tree array(id=$book->id node=$node[0]->id pos=before)}#form" title="{l NODE_ADD_BEFORE_TITLE}">{l NODE_ADD_BEFORE}</a>
 					{if !$node[0]->isLeaf}
 						<a class="book-add-inside" href="{url add Tree array(id=$book->id node=$node[0]->id pos=inside)}#form" title="{l NODE_ADD_INSIDE_TITLE}">{l NODE_ADD_INSIDE}</a>
 					{/if}
+					*}
 				</div>
 			</div>
 			<div class="book-meta">
@@ -36,6 +38,16 @@
 			</div>
 			<div></div>
 		</div>
+		
+		{* If to add a node after the current node, create a new row with the form *}
+		{if $adding && $reference->id == $node[0]->id}
+			<div class="book-row book-row-with-form{if !$newNode->type} book-row-choose-type{/if}">
+				<div class="book-content">
+					{include file='_form.tpl' node=$newNode book=$book reference=$reference}
+				</div>
+				<div></div>
+			</div>
+		{/if}
 		
 		{if arrcount($node[1])}
 			{include file='_details_node.tpl' book=$book nodes=$node[1] depth=$depth+1}
