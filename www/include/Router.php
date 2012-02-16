@@ -128,7 +128,9 @@ class Router {
 						$additional = '?';
 					else
 						$additional .= '&';
-					$additional .=  $key . '=' . rawurlencode($value);
+					$additional .=  $key;
+					if ($value !== '')
+						$additional .= '=' . rawurlencode($value);
 				}
 			}
 			$url = str_replace('//', '/', $url);

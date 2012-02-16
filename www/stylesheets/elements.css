@@ -371,6 +371,14 @@ table > tbody > tr.group-header > td {
 	background: url(../images/add-inside.png) no-repeat center center;
 }
 
+.book-delete-item {	
+	background: url(../images/delete-item.png) no-repeat center center;
+}
+
+.book-delete-recursive {	
+	background: url(../images/delete-recursive.png) no-repeat center center;
+}
+
 /* ========== Book Form ========== */
 
 .book-form-choice {
@@ -382,6 +390,9 @@ table > tbody > tr.group-header > td {
 	float: left;
 	padding: 5px 10px;
 	margin-right: 20px;
+	color: #000000;
+	
+	text-shadow: 0 0 3px #FFFFFF;
 }
 
 .book-form-choice a:last-child {
@@ -392,8 +403,32 @@ table > tbody > tr.group-header > td {
 .book-form-choice a:active {
 	text-decoration: none;
 	color: #FFFFFF;
+	text-shadow: none;
 	
 	background: rgba(0, 0, 0, 0.4);	
+}
+
+.book-form-choice .choice-heading1 {
+	color: #C00000;
+	font-weight: bold;
+}
+
+.book-form-choice .choice-heading2 {
+	color: #0000C0;
+	font-weight: bold;
+}
+
+.book-form-choice .choice-heading3 {
+	color: #008000;
+	font-weight: bold;
+}
+
+.book-form-choice .choice-heading4 {
+	font-weight: bold;
+}
+
+.book-form-choice .choice-cancel {
+	color: rgba(0, 0, 0, 0.5);
 }
 
 .book-form textarea,

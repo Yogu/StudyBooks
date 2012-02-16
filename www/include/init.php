@@ -41,7 +41,9 @@ function error($errno, $errstr, $errfile, $errline) {
 		else
 			return;
 	}
-	//debug_print_backtrace();
+	echo '<pre>';
+	debug_print_backtrace();
+	echo '</pre>';
 	echo "<b>".errnoToString($errno).":</b> ".$errfile.':'.$errline.': '.$errstr.'<br />';
 }
 

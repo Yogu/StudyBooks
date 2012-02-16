@@ -2,7 +2,7 @@
 
 {if arrcount($nodes)}
 	{foreach $nodes node}
-		<div class="book-row book-row-{$node[0]->type}{if $node[0]->id == $edit->id} book-row-with-form{/if}">
+		<div class="book-row book-row-{$node[0]->type}{if $node[0]->id == $edit->id} book-row-with-form{/if}" id="n{$node[0]->id}">
 			<div class="book-content">
 				{if $node[0]->id == $edit->id}
 					{include file='_form.tpl' node=$edit}
@@ -15,13 +15,19 @@
 							</div>
 						{/if}
 					{else}
-						<h{$depth} id="n{$node[0]->id}">{* <a href="{url details Tree array(id=$book->id)}#n{$node[0]->id}">*}{html $node[0]->title}{*</a>*}</h{$depth}>
+						<h{$depth}>{* <a href="{url details Tree array(id=$book->id)}#n{$node[0]->id}">*}{html $node[0]->title}{*</a>*}</h{$depth}>
 					{/if}
 				{/if}
 			</div>
 			<div class="book-toolbar">
 				<div>
 					<a class="book-edit" href="{url edit Tree array(id=$book->id node=$node[0]->id)}#form" title="{l NODE_EDIT_TITLE}">{l NODE_EDIT}</a>
+					{if $node[0]->isLeaf}
+						<a class="book-delete-item" href="{url delete Tree array(id=$book->id item=$node[0]->id)}#form" title="{l NODE_DELETE_LEAF_TITLE}">{l NODE_DELETE_LEAF}</a>
+					{else}
+						<a class="book-delete-item" href="{url delete Tree array(id=$book->id item=$node[0]->id)}#form" title="{l NODE_DELETE_ITEM_TITLE}">{l NODE_DELETE_ITEM}</a>
+						<a class="book-delete-recursive" href="{url delete Tree array(id=$book->id node=$node[0]->id recursive='')}#form" title="{l NODE_DELETE_RECURSIVE_TITLE}">{l NODE_DELETE_RECURSIVE}</a>
+					{/if}
 					<a class="book-add-after" href="{url add Tree array(id=$book->id after=$node[0]->id)}#form" title="{l NODE_ADD_AFTER_TITLE}">{l NODE_ADD_AFTER}</a>
 					{*
 					<a class="book-add-before" href="{url add Tree array(id=$book->id node=$node[0]->id pos=before)}#form" title="{l NODE_ADD_BEFORE_TITLE}">{l NODE_ADD_BEFORE}</a>

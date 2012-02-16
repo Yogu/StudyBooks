@@ -43,17 +43,134 @@ class Node extends Model {
 			->first();
 	}
 	
+	/**
+	 * Treats the whole tree as a list and inserts this node in the given depth after a reference
+	 * node, keeping the depth of every other node.
+	 * 
+	 * Example: let the letters be nodes, this method can change
+	 * 
+	 * A           A
+	 *  B    to     B
+	 *   C   ==>    N
+	 *  D            C
+	 *              D
+	 *              
+	 * When adding N after B with secondary depth (depth = 2). Note that C has changed its parent.
+	 * 
+	 * @param Node $reference the node after which to add
+	 * @param int $depth the target depth of this node
+	 */
+	public function insertAsElementAfter(Node $reference, $depth) {
+		if ($depth == $reference->depth) {
+			$this->parentID = $reference->parentID;
+			$this->depth = $depth;
+			$this->insertAt($reference->order + 1);
+			
+			// Children of reference become children of this node
+			DataBase::query(
+				"UPDATE ".DataBase::table('Nodes')." ".
+				"SET parentID = #0 ".
+				"WHERE parentID = #1",
+				array($this->id, $reference->id));
+		} else if ($depth > $reference->depth) {
+			$depth = $reference->depth + 1; // don't allow more indentation
+			$this->parentID = $reference->id;
+			$this->depth = $depth;
+			$this->insertAt(0); // insert as first child
+		} else if ($depth >= 0) {
+			// A         A
+			//  B         B
+			//   C   =>  N    <- this node
+			//  D         1   <- dummy node has to be created
+			// E           C
+			//            D
+			//           E
+
+			$node = $reference;
+			$nodesWithFollowingSiblings = array();
+			while ($node && $node->depth > $depth) {
+				if (count($nodesWithFollowingSiblings) || $node->hasFollowingSiblings()) { // like B in example
+					array_unshift($nodesWithFollowingSiblings, $node);
+				}
+				
+				$lastNode = $node;
+				$node = Query::from(self::table())
+					->whereEquals('id', $node->parentID)
+					->first();
+			}
+			$previousSibling = $node;
+			
+			if ($previousSibling == null)
+				throw new RuntimeException('Assertion failed: $previousSibling is null, tree seems to be corrupt');
+				
+			// Insert after A in example
+			$this->depth = $depth;
+			$this->parentID = $node->parentID;
+			$this->insertAt($node->order + 1);
+			
+			// Add dummy nodes
+			$lastID = $this->id;
+			// Dummy is only needed for nodes which _contain_ nodes with following siblings
+			for ($i = 0; $i < count($nodesWithFollowingSiblings) - 1; $i++) {
+				$original = $nodesWithFollowingSiblings[$i];
+				$child = $nodesWithFollowingSiblings[$i + 1];
+				$dummy = clone $original;
+				$dummy->parentID = $lastID;
+				$dummy->order = 0;
+				$dummy->insert();
+				$lastID = $dummy->id;
+				
+				// Make C a child of 1
+				DataBase::query(
+					"UPDATE ".DataBase::table('Nodes')." ".
+					"SET parentID = #0 ".
+					"WHERE parentID = #1 ".
+						"AND `order` > #2 ",
+					array($dummy->id, $original->id, $child->order));
+			}
+				
+			// Make D a child of N
+			DataBase::query(
+				"UPDATE ".DataBase::table('Nodes')." ".
+				"SET parentID = #0 ".
+				"WHERE parentID = #1 ".
+					"AND `order` > #2",
+				array($this->id, $previousSibling->id, $reference->order));
+		}
+	}
+	
 	public function insertAsLast() {
 		$this->order = self::getMaxOrder($this->parentID);
+		$this->insert();
+	}
+
+	/**
+	 * Inserts this node at the specified order, moving following children of the same parent down
+	 * 
+	 * This method does NOT check whether $order is within the allowed range.
+	 * 
+	 * @param int $order the position to insert at
+	 */
+	public function insertAt($order) {
+		// Move all following nodes downwards
+		DataBase::query(
+			"UPDATE ".DataBase::table('Nodes')." ".
+			"SET `order` = `order` + 1 ".
+			"WHERE parentID = #0 ".
+				"AND `order` >= #1 ",
+			array($this->parentID, $order));
+			
+		$this->order = $order;
 		$this->insert();
 	}
 	
 	private function insert() {
 		DataBase::query(
 			"INSERT INTO ".DataBase::table('Nodes')." ".
-			"SET parentID = #0, isLeaf = #1, type = #2, depth = #3, ".
+			"SET parentID = #0, isLeaf = #1, type = #2, depth = #3, `order` = #4, title = #5, ".
 				"createTime = NOW(), editTime = NOW() ",
-			array($this->parentID, $this->isLeaf, $this->type, $this->depth));
+			array($this->parentID, $this->isLeaf, $this->type, $this->depth, $this->order, 
+				$this->title));
 		$this->id = DataBase::getInsertID();
 		$this->createTime = time();
 		$this->editTime = time();
@@ -217,7 +334,7 @@ class Node extends Model {
 	
 	private static function getMaxOrder($parentID) {
 		$result = DataBase::query(
-			"SELECT MAX(order) AS maxOrder ".
+			"SELECT MAX(`order`) AS maxOrder ".
 			"FROM ".DataBase::table('Nodes')." ".
 			"WHERE parentID = #0",
 			array($parentID));
@@ -226,6 +343,10 @@ class Node extends Model {
 			return $maxOrder;
 		} else
 			return null;
+	}
+	
+	private function hasFollowingSiblings() {
+		return $this->order < self::getMaxOrder($this->parentID);
 	}
 	
 	public function updateDepthRecursively() {

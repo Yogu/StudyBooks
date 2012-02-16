@@ -5,7 +5,7 @@ class TreeController extends Controller {
 	public function index() {
 		if ($r = $this->requireLogin()) return $r;
 		
-		$this->data->nodes = $this->loadNodes();
+		$this->data->nodes = $this->loadNodes(0, true);
 		
 		return $this->view();
 	}
@@ -19,7 +19,7 @@ class TreeController extends Controller {
 			$this->redirection('index');
 			
 		$this->data->book = $node;
-		$this->data->nodes = $this->loadNodes($id, true);
+		$this->data->nodes = $this->loadNodes($id, false);
 		
 		return $this->view();
 	}
@@ -81,23 +81,40 @@ class TreeController extends Controller {
 			case 'heading2':
 			case 'heading3':
 			case 'heading4':
-				$referenceDepth = $reference->depth - $book->depth;
-				$newDepth = (int)substr($type, strlen('heading'));
+				$relativeDepth = (int)substr($type, strlen('heading'));
+				$newDepth = $book->depth + $relativeDepth;
 				$newNode->type = 'heading';
 				$newNode->isLeaf = false;
 				$newNode->parentID = 0;
+				$newNode->title = $this->request->post('title');
 				break;
-			case 'text':	
+			case 'text':
+				if ($reference->isLeaf)
+					$newDepth = $reference->depth;
+				else
+					$newDepth = $reference->depth + 1; 
 				$newNode->type = 'text';
 				$newNode->isLeaf = true;
 				$newNode->parentID = $reference->parentID;
 				$newNode->order = $reference->order + 1;
+				$content = new NodeText();
+				$content->text = $this->request->post('text');
 				breaK;
 		}
 
-		if (isset($this->request->post['cancel'])) {
-			return $this->redirectToURL(Router::getURL(
-				array('id' => $book->id, 'controller' => 'Tree', 'action' => 'details')).'#n'.$reference->id);
+		if ($this->request->method == 'POST') {
+			if (isset($this->request->post['cancel'])) {
+				return $this->redirectToURL(Router::getURL(
+					array('id' => $book->id, 'controller' => 'Tree', 'action' => 'details')).'#n'.$reference->id);
+			} else {
+				$newNode->insertAsElementAfter($reference, $newDepth);
+				if (isset($content)) {
+					$content->nodeID = $newNode->id;
+					$content->insert();
+				}
+				return $this->redirectToURL(Router::getURL(
+					array('id' => $book->id, 'controller' => 'Tree', 'action' => 'details')).'#n'.$newNode->id);
+			}
 		}
 		
 		$this->data->adding = true;
@@ -121,10 +138,10 @@ class TreeController extends Controller {
 			->orderBy('order')
 			->all();
 		foreach ($nodes as &$node) {
-			if ($node->type == 'book')
+			if ($node->isLeaf || ($onlyOutline && $node->type == 'book'))
 				$node = array($node, array());
 			else 
-				$node = array($node, $this->loadNodes($node->id));
+				$node = array($node, $this->loadNodes($node->id, $onlyOutline));
 		}
 		return $nodes;
 	}
