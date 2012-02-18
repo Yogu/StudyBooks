@@ -41,10 +41,10 @@ function error($errno, $errstr, $errfile, $errline) {
 		else
 			return;
 	}
+	echo "<b>".errnoToString($errno).":</b> ".$errfile.':'.$errline.': '.$errstr.'<br />';
 	echo '<pre>';
 	debug_print_backtrace();
 	echo '</pre>';
-	echo "<b>".errnoToString($errno).":</b> ".$errfile.':'.$errline.': '.$errstr.'<br />';
 }
 
 // __DIR__ not available on all servers

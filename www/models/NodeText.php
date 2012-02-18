@@ -3,7 +3,7 @@ defined('IN_APP') or die;
 
 class NodeText extends Model implements NodeContent {
 	public $nodeID;
-	public $text;
+	public $text = '';
 	
 	private static $parser;
 	
@@ -22,7 +22,7 @@ class NodeText extends Model implements NodeContent {
 	}
 	
 	public static function forNode(Node $node) {
-		$t = Query::from(self::table())
+		$t = self::query()
 			->whereEquals('nodeID', $node->id)
 			->first();
 		if (!$t) {
@@ -34,18 +34,16 @@ class NodeText extends Model implements NodeContent {
 	}
 	
 	public function insert() {
-		DataBase::query(
-			"INSERT INTO ".DataBase::table('NodesText')." ".
-			"SET nodeID = #0, text = #1 ",
-			array($this->nodeID, $this->text));
+		$this->query()
+			->insert(array(
+				'nodeID' => $this->nodeID,
+				'text' => $this->text));
 	}
 	
 	public function saveChanges() {
-		DataBase::query(
-			"UPDATE ".DataBase::table('NodesText')." ".
-			"SET text = #0 ".
-			"WHERE nodeID = #1",
-			array($this->text, $this->nodeID));
+		$this->query()
+			->whereEquals('nodeID', $this->nodeID)
+			->udpate(array('text' => $this->text));
 	}
 	
 	public function getNodeID() {

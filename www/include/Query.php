@@ -26,14 +26,15 @@ class Query implements IteratorAggregate, Countable, ArrayAccess {
 	 * @param $params The sql parameters 
 	 */
 	public function where($sql, $params = null) {
-		$sql = $this->embedParameters($sql, $params);
-		if ($this->where)
-			$this->where .= "AND ($sql) ";
+		$clone = clone $this;
+		$sql = $clone->embedParameters($sql, $params);
+		if ($clone->where)
+			$clone->where .= "AND ($sql) ";
 		else
-			$this->where = "WHERE ($sql) ";
+			$clone->where = "WHERE ($sql) ";
 			
-		$this->sql = null;
-		return $this;
+		$clone->sql = null;
+		return $clone;
 	}
 	
 	public function whereEquals($column, $value) {
@@ -43,13 +44,14 @@ class Query implements IteratorAggregate, Countable, ArrayAccess {
 	}
 	
 	public function orderBy($column, $dir = "ASC") {
-		$column = $this->formatColumnSimple($column);
-		if (!is_array($this->order))
-			$this->order = array();
-		array_unshift($this->order, array($column, $dir));
+		$clone = clone $this;
+		$column = $clone->formatColumnSimple($column);
+		if (!is_array($clone->order))
+			$clone->order = array();
+		array_unshift($clone->order, array($column, $dir));
 			
-		$this->sql = null;
-		return $this;
+		$clone->sql = null;
+		return $clone;
 	}
 	
 	public function orderByDescending($column) {
@@ -67,20 +69,22 @@ class Query implements IteratorAggregate, Countable, ArrayAccess {
 	 * @return unknown_type
 	 */
 	public function select($columns) {
+		$clone = clone $this;
+		
 		if (!is_array($columns))
 			$columns = func_get_args();
 		if (!is_array($this->select))
-			$this->select = array();
+			$clone->select = array();
 		
 		foreach ($columns as $column) {
-			if (!isset($this->select[$column])) {
-				$this->formatColumnSimple($column); // check if column exists
-				$this->select[$column] = true;
+			if (!isset($clone->select[$column])) {
+				$clone->formatColumnSimple($column); // check if column exists
+				$clone->select[$column] = true;
 			}
 		}
 			
-		$this->sql = null;
-		return $this;
+		$clone->sql = null;
+		return $clone;
 	}
 	
 	/**
@@ -99,14 +103,16 @@ class Query implements IteratorAggregate, Countable, ArrayAccess {
 	 * @return Query this query
 	 */
 	public function reverse() {
-		if (is_array($this->order)) {
-			foreach ($this->order as &$value) {
+		$clone = clone $this;
+		
+		if (is_array($clone->order)) {
+			foreach ($clone->order as &$value) {
 				$value[1] = $value[1] == 'DESC' ? 'ASC' : 'DESC';
 			}
 		}
 			
-		$this->sql = null;
-		return $this;
+		$clone->sql = null;
+		return $clone;
 	}
 	
 	private function embedParameters($sql, $params)  {
@@ -116,22 +122,33 @@ class Query implements IteratorAggregate, Countable, ArrayAccess {
 			foreach ($params as &$param) {
 				$param = $this->formatValue($param);
 			}
-			$params = (object)$params;
-			static $callback;
-			if (!isset($callback))
-				$callback = create_function('$matches',
-					'$params = json_decode(\''.addcslashes(json_encode($params), '\'').'\'); '."\n".
-					'$name = $matches[1]; return $params->$name;');
+			$callback = create_function('$matches',
+				'$params = (array)json_decode(\''.addcslashes(json_encode($params), '\'\\').'\'); '."\n".
+				'$name = $matches[1]; if (isset($params[$name])) return $params[$name]; '.
+				'else throw new Exception("Unknown parameter: $name");');
 			$sql = preg_replace_callback('/#([0-9a-zA-Z_]+)/', $callback, $sql);
 		}
+		
+		// Format columns
+		if (!isset($this->embedParameters_callback2))
+			$this->embedParameters_callback2 = create_function('$matches',
+				'$columns = (array)json_decode(\''.addcslashes(json_encode($this->table->columns), '\'\\').'\'); '."\n".
+				'$name = $matches[1]; if (isset($columns[$name])) return \'`\'.Strings::leftOf($columns[$name], \':\').\'`\'; '.
+				'else throw new Exception("Unknown column: $name");');
+		$sql = preg_replace_callback('/\\$([0-9a-zA-Z_]+)/', $this->embedParameters_callback2, $sql);
 		return $sql;
 	}
 	
-	private function formatValue($value) {
+	private function formatValue($value, $type = '') {
 		if (is_bool($value))
-			return $value ? "'1'" : "'0'";
+			$value = $value ? "'1'" : "'0'";
 		else
-			return "'".DataBase::escape((string)$value)."'";
+			$value = "'".DataBase::escape((string)$value)."'";
+			
+		if ($type == 'time')
+			$value = 'FROM_UNIXTIME('.$value.')';
+			
+		return $value;
 					
 	}
 	
@@ -150,7 +167,7 @@ class Query implements IteratorAggregate, Countable, ArrayAccess {
 		$dbField = Strings::leftOf($this->table->columns[$column], ':');
 		if (!$dbField)
 			$dbField = $column;
-		return "t.`$dbField`";
+		return "`$dbField`";
 	}
 	
 	// =============================================================================================
@@ -242,9 +259,7 @@ class Query implements IteratorAggregate, Countable, ArrayAccess {
 	}
 	
 	public function last($count = null) {
-		$query = clone $this;
-		$query->reverse();
-		return $query->first($count);
+		return $query->reverse()->first($count);
 	}
 	
 	public function all() {
@@ -252,8 +267,33 @@ class Query implements IteratorAggregate, Countable, ArrayAccess {
 	}
 	
 	public function count() {
+		return $this->aggregate('COUNT', false);
+	}
+	
+	public function max($column) {
+		return $this->aggregate('MAX', true, $column);
+	}
+	
+	public function min($column) {
+		return $this->aggregate('MIN', true, $column);
+	}
+	
+	public function sum($column) {
+		return $this->aggregate('SUM', true, $column);
+	}
+	
+	public function average($column) {
+		return $this->aggregate('AVG', true, $column);
+	}
+	
+	private function aggregate($function, $requiresColumn, $column = null) {
+		if ($column || $requiresColumn)
+			$column = $this->formatColumn($column);
+		else
+			$column = '*';
+			
 		$sql =
-			"SELECT COUNT(*) AS count ".
+			"SELECT $function($column) ".
 			$this->buildFromsQL().
 			$this->where;
 		
@@ -282,5 +322,74 @@ class Query implements IteratorAggregate, Countable, ArrayAccess {
 	
 	public function offsetUnset($offset) {
 		return Exception("Method offsetUnset not implemented");
+	}
+	
+	private function formatSetterColumns($fields, $params = null) {
+		if (is_array($fields)) {
+			if (!count($fields))
+				return false;
+			
+			$sql = '';
+			foreach ($fields as $key => $value) {
+				if ($sql)
+					$sql .= ', ';
+					
+				if (is_int($key)) {
+					if (is_array($value)) {
+						$pattern = array_shift($value);
+						$value = $this->embedParameters($pattern, $value);
+					} else
+						$value = $this->embedParameters($value, array()); // format column names
+					$sql .= $value;
+				} else {
+					$encode = !Strings::endsWidth($key, '!');
+					if (!$encode)
+						$key = substr($key, 0, -1);
+		
+					if (!isset($this->table->columns[$key]))
+						throw new Exception("Table ".$this->table->tableName." does not have column $key");
+					$t = $this->table->columns[$key];
+					$dbField = '`'.Strings::leftOf($t, ':').'`';
+					$type = Strings::rightOfFirst($t, ':');
+					if ($encode) {
+						$value = self::formatValue($value, $type);
+					} else if (is_array($value)) {
+						$pattern = array_shift($value);
+						$value = $this->embedParameters($pattern, $value);
+					} else
+						$value = $this->embedParameters($value, array()); // format column names
+					$sql .= $dbField.' = '.$value;
+				}
+			}
+			return $sql;
+		} else {
+			return self::embedParameters($fields, $params);
+		}
+	}
+	
+	public function update($fields, $params = null) {
+		$sql = $this->formatSetterColumns($fields, $params);
+		
+		$sql = "UPDATE ".DataBase::table($this->table->tableName)." AS t ".
+			"SET $sql ".
+			$this->where;
+			
+		DataBase::query($sql);
+	}
+	
+	public function insert($fields, $params = null) {
+		$sql = $this->formatSetterColumns($fields, $params);
+		
+		$sql = "INSERT INTO ".DataBase::table($this->table->tableName)." ".
+			"SET $sql";
+		
+		DataBase::query($sql);
+		return DataBase::getInsertID();
+	}
+	
+	public function delete() {
+		$sql = "DELETE FROM ".DataBase::table($this->table->tableName)." ".
+			$this->where;
+		DataBase::query($sql);
 	}
 }

@@ -16,7 +16,7 @@ class TreeController extends Controller {
 		$id = $this->request->parameters['id'];
 		$node = Node::getByID($id);
 		if (!$node || $node->type == 'folder')
-			$this->redirection('index');
+			return $this->redirection('index');
 			
 		$this->data->book = $node;
 		$this->data->nodes = $this->loadNodes($id, false);
@@ -29,7 +29,7 @@ class TreeController extends Controller {
 		
 		$book = Node::getByID($this->request->parameters['id']);
 		if (!$book || $book->type == 'folder')
-			$this->redirection('index');
+			return $this->redirection('index');
 
 		// The node to edit
 		$node = Node::getByID($this->request->parameters['node']);
@@ -47,9 +47,7 @@ class TreeController extends Controller {
 				}
 				$node->saveChanges();
 			}
-			
-			return $this->redirectToURL(Router::getURL(
-				array('id' => $book->id, 'controller' => 'Tree', 'action' => 'details')).'#n'.$node->id);
+			return $this->redirectToNode($book, $node);
 		}
 			
 		$this->data->edit = $node;
@@ -64,16 +62,15 @@ class TreeController extends Controller {
 		
 		$book = Node::getByID($this->request->parameters['id']);
 		if (!$book || $book->type == 'folder')
-			$this->redirection('index');
+			return $this->redirection('index');
 
 		// The after which to add the new node
 		$reference = Node::getByID($this->request->param('after'));
 		if (!$reference)
-			$this->redirection('details', 'Tree', 303, array('id' => $book->id));
+			return $this->redirection('details', 'Tree', 303, array('id' => $book->id));
 			
 		$this->data->nodes = $this->loadNodes($book->id, true);
 		
-		// TODO: work in progress
 		$newNode = new Node();
 		$type = $this->request->param('type');
 		switch ($type) {
@@ -94,7 +91,6 @@ class TreeController extends Controller {
 					$newDepth = $reference->depth + 1; 
 				$newNode->type = 'text';
 				$newNode->isLeaf = true;
-				$newNode->order = $reference->order + 1;
 				$content = new NodeText();
 				$content->text = $this->request->post('text');
 				breaK;
@@ -102,22 +98,63 @@ class TreeController extends Controller {
 
 		if ($this->request->method == 'POST') {
 			if (isset($this->request->post['cancel'])) {
-				return $this->redirectToURL(Router::getURL(
-					array('id' => $book->id, 'controller' => 'Tree', 'action' => 'details')).'#n'.$reference->id);
+				return $this->redirectToNode($book, $reference);
 			} else {
 				$newNode->insertAsElementAfter($reference, $newDepth);
 				if (isset($content)) {
 					$content->nodeID = $newNode->id;
 					$content->insert();
 				}
-				return $this->redirectToURL(Router::getURL(
-					array('id' => $book->id, 'controller' => 'Tree', 'action' => 'details')).'#n'.$newNode->id);
+				return $this->redirectToNode($book, $newNode);
 			}
 		}
 		
 		$this->data->adding = true;
 		$this->data->reference = $reference;
 		$this->data->newNode = $newNode;
+		$this->data->book = $book;
+		
+		return $this->view('details');
+	}
+	
+	public function delete() {
+		if ($r = $this->requirePoster()) return $r;
+		
+		$book = Node::getByID($this->request->parameters['id']);
+		if (!$book || $book->type == 'folder')
+			return $this->redirection('index');
+
+		if (isset($this->request->parameters['node'])) {
+			$node = Node::getByID($this->request->param('node'));
+			$recursive = true;
+		} else {
+			$node = Node::getByID($this->request->param('item'));
+			$recursive = false;
+			if (!$node->canDeleteAsElement())
+				$this->data->deleteImpossible = true;
+		}
+		if (!$node)
+			return $this->redirection('details', 'Tree', 303, array('id' => $book->id));
+			
+		if (isset($this->request->post['cancel']))
+			return $this->redirectToNode($book, $node);
+		
+		if (isset($this->request->post['confirm'])) {
+			$nextNode = $node->getNext();
+			if ($nextNode->depth <= $book->depth)
+				$nextNode = null;
+			
+			if ($recursive)
+				$node->delete();
+			else
+				$node->deleteAsElement();
+			
+			return $this->redirectToNode($book, $nextNode);
+		}
+			
+		$this->data->nodes = $this->loadNodes($book->id, true);
+		$this->data->toDelete = $node;
+		$this->data->deleteRecursive = $recursive;
 		$this->data->book = $book;
 		
 		return $this->view('details');
@@ -148,5 +185,11 @@ class TreeController extends Controller {
 		$arr = $this->request->post;
 		if (isset($arr[$field]) && trim($arr[$field]))
 			$out = trim($arr[$field]);
+	}
+	
+	private function redirectToNode($book, $node) {
+		return $this->redirectToURL(Router::getURL(
+			array('id' => $book->id, 'controller' => 'Tree', 'action' => 'details')).
+			($node ? '#n'.$node->id : ''));
 	}
 }

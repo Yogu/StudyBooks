@@ -6,7 +6,7 @@
 		<a class="choice-heading3" href="{url array(_addCurrent type=heading3)}#form" title="{l NODE_TYPE_HEADING3_TITLE}">{l NODE_TYPE_HEADING3}</a>
 		<a class="choice-heading4" href="{url array(_addCurrent type=heading4)}#form" title="{l NODE_TYPE_HEADING4_TITLE}">{l NODE_TYPE_HEADING4}</a>
 		<a class="choice-text" href="{url array(_addCurrent type=text)}#form" title="{l NODE_TYPE_TEXT_TITLE}">{l NODE_TYPE_TEXT}</a>
-		<a class="choice-file" href="{url array(_addCurrent type=file)}#form" title="{l NODE_TYPE_FILE_TITLE}">{l NODE_TYPE_FILE}</a>
+		{*<a class="choice-file" href="{url array(_addCurrent type=file)}#form" title="{l NODE_TYPE_FILE_TITLE}">{l NODE_TYPE_FILE}</a>*}
 		<a class="choice-cancel" href="{url details Tree array(id=$book->id)}#{$reference->id}">{l FORM_CANCEL}</a>
 	</div>
 {else}

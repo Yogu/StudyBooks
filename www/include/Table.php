@@ -8,10 +8,17 @@ class Table {
 	public $autoAssignEnabled;
 	
 	public function __construct($className, $tableName, array $columns) {
-		foreach ($columns as $k => $v) {
+		foreach ($columns as $k => &$v) {
 			if (is_int($k)) {
 				unset($columns[$k]);
 				$columns[$v] = $v;
+			} else {
+				$name = Strings::leftOf($v, ':');
+				$type = Strings::rightOfFirst($v, ':');
+				if (!$name) {
+					$name = $k;
+					$v = $name.':'.$type;
+				}
 			}
 		}
 		

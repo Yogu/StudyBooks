@@ -451,3 +451,40 @@ table > tbody > tr.group-header > td {
 .book-form .buttons {
 	text-align: right;
 }
+
+/* ========== Delete books ========== */
+
+.book-row-to-delete:before {
+	display: block;
+	width: 100%;
+	height: 100%;
+	top: 0;
+	position: absolute;
+	padding-bottom: 1em;
+	
+	background-color: rgba(128, 0, 0, 0.8);
+	
+	content: '';
+}
+
+.book-row-delete {
+	display: block;
+	width: 100%;
+	top: 0;
+	position: absolute;
+	padding: 5px;
+	
+	color: #FFFFFF;
+}
+
+.book-row-to-delete:hover {
+	background: transparent;
+}
+
+.book-row-to-delete:hover .book-toolbar {
+	display: none;
+}
+
+.book-row-delete form {
+	display: inline;
+}

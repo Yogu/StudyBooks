@@ -32,14 +32,8 @@ class User extends Model {
 		parent::__construct($data);
 	}
 	
-	public static function getByID($id) {
-		return Query::from(self::table())
-			->whereEquals('id', (int)$id)
-			->first();
-	}
-	
 	public static function getByName($name) {
-		return Query::from(self::table())
+		return self::query()
 			->whereEquals('name', $name)
 			->first();
 	}
@@ -50,46 +44,26 @@ class User extends Model {
 	
 	public function insert() {
 		$this->hashedPassowrd = self::hashPassword($this->rawPassword);
-		DataBase::query(
-			"INSERT INTO ".DataBase::table('users')." ".
-			"SET name = #0, email = #1, password = #2, role = #3, isBanned = #4, ".
-				"createTime = NOW()",
-			array($this->name, $this->email, $this->hashedPassowrd, $this->role,
-				$this->isBanned));
-		$this->id = DataBase::getInsertID();
 		$this->createTime = time();
+		$this->insertAll();
 	}
 	
 	public function saveChanges() {
-		DataBase::query(
-			"UPDATE ".DataBase::table('users')." ".
-			"SET name = #0, email = #1, role = #2, isBanned = #3 ".
-			"WHERE id = #4",
-			array($this->name, $this->email, $this->role, $this->isBanned, $this->id));
+		$this->updateFields(array('name', 'email', 'role', 'isBanned'));
 	}
 	
 	public function changePassword() {
 		$this->hashedPassowrd = self::hashPassword($this->rawPassword);
-		DataBase::query(
-			"UPDATE ".DataBase::table('users')." ".
-			"SET password = #0 ".
-			"WHERE id = #1",
-			array($this->hashedPassowrd, $this->id));
+		$this->updateFields(array('hashedPassword'));
 	}
 	
 	public function delete() {
-		DataBase::query(
-			"DELETE FROM ".DataBase::table('users')." ".
-			"WHERE id = #0",
-			$this->id);
+		parent::delete();
 	}
 	
 	public function updateLoginTime() {
-		DataBase::query(
-			"UPDATE ".DataBase::table('Users')." ".
-			"SET lastLoginTime = NOW() ".
-			"WHERE id = #0",
-			$this->id);
+		$this->lastLoginTime = time();
+		$this->updateFields(array('lastLoginTime'));
 	}
 	
 	public function checkPassword($rawPassword) {

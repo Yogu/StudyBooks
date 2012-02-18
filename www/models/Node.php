@@ -10,7 +10,7 @@ class Node extends Model {
 	public $type;
 	public $createTime;
 	public $editTime;
-	public $title;
+	public $title = '';
 	
 	private $content;
 	private $dbTitle;
@@ -35,12 +35,6 @@ class Node extends Model {
 	public function __construct($data = null) {
 		parent::__construct($data);
 		$this->dbTitle = $this->title;
-	}
-	
-	public static function getByID($id) {
-		return Query::from(self::table())
-			->whereEquals('id', (int)$id)
-			->first();
 	}
 	
 	/**
@@ -89,41 +83,38 @@ class Node extends Model {
 				$this->insert(); 
 				
 				// Leaf-children of reference become children of this node
-				DataBase::query(
-					"UPDATE ".DataBase::table('Nodes')." ".
-					"SET parentID = #0 ".
-					"WHERE parentID = #1 ".
-						"AND isLeaf ",
-					array($this->id, $reference->id));
+				$reference->getChildren()
+					->where('isLeaf')
+					->update(array(
+						'parentID' => $this->id,
+						'depth!' => '$depth + 1'));
 			} elseif ($depth == $reference->depth) {
 				$this->parentID = $reference->parentID;
 				$this->insertAt($reference->order + 1);
 					
 				if ($reference->isLeaf) {
 					// Leaf-children of parent, beginning below reference, become children of new node
-					DataBase::query(
-						"UPDATE ".DataBase::table('Nodes')." ".
-						"SET parentID = #0 ".
-						"WHERE parentID = #1 ".
-							"AND isLeaf ".
-							"AND `order` > #2",
-						array($this->id, $this->parentID, $reference->order));
+					$reference->getSucceedingSiblings()
+						->where('isLeaf')
+						->update(array(
+							'parentID' => $this->id,
+							'$depth = $depth + 1'));
 				} else { // reference is not a leaf
 					// All children of reference become children of this node
-					DataBase::query(
-						"UPDATE ".DataBase::table('Nodes')." ".
-						"SET parentID = #0 ".
-						"WHERE parentID = #1",
-						array($this->id, $reference->id));
+					$reference->getChildren()
+						->update(array('parentID' => $this->id));
 				}
 			} else if ($depth >= 0) {
-				// A         A
-				//  B         B
-				//   C   =>  N    <- this node
-				//  D         1   <- dummy node has to be created
-				// E           C
-				//            D
-				//           E
+				// P         P    <- preceding sibling
+				//  A         A
+				//   R         R   <- reference
+				//    C   => N     <- this node
+				//   D        1    <- dummy node has to be created
+				//  E          2   <-  "
+				// F            C  <- following child of a node
+				//             D   <-  "
+				//            E    <- following child of preceding sibling 
+				//           F
 	
 				$node = $reference;
 				// second item of array: order of first following child
@@ -133,55 +124,110 @@ class Node extends Model {
 					$nodesWithFollowingChildren = array();
 				$lastNode = null;
 				while ($node && $node->depth > $depth) {
-					// In example, B has following siblings, thus A has a following child
-					if ($lastNode && (count($nodesWithFollowingChildren) || $lastNode->hasFollowingSiblings())) {
-						array_unshift($nodesWithFollowingChildren, array($node, $lastNode->order + 1));
-					}
-					
 					$lastNode = $node;
 					$node = Query::from(self::table())
 						->whereEquals('id', $node->parentID)
 						->first();
-				}
-				$previousSibling = $node;
 				
-				if ($previousSibling == null)
+					// In example, B has following siblings, thus A has a following child
+					if ($node && (count($nodesWithFollowingChildren) || $lastNode->hasFollowingSiblings())) {
+						array_unshift($nodesWithFollowingChildren, array($node, $lastNode->order + 1));
+					}
+				}
+				$precedingSibling = $node;
+				
+				if ($precedingSibling == null)
 					throw new RuntimeException('Assertion failed: $previousSibling is null, tree seems to be corrupt');
 					
 				// Insert after A in example
-				$this->parentID = $previousSibling->parentID;
-				$this->insertAt($previousSibling->order + 1);
+				$this->parentID = $precedingSibling->parentID;
+				$this->insertAt($precedingSibling->order + 1);
 				
-				// Add dummy nodes
+				// Clone headings to keep the depths and add succeeding content to the new headings
 				$lastID = $this->id;
-				// Dummy is only needed for nodes which _contain_ nodes with following siblings
 				foreach ($nodesWithFollowingChildren as $arr) {
 					$original = $arr[0];
 					$order = $arr[1];
-					$dummy = clone $original;
-					$dummy->parentID = $lastID;
-					$dummy->order = 0;
-					$dummy->insert();
-					$lastID = $dummy->id;
+					if ($original == $precedingSibling)
+						$clone = $this;
+					else {
+						$clone = clone $original;
+						$clone->parentID = $lastID;
+						$clone->order = 0;
+						$clone->insert();
+					}
 					
-					// Make C a child of 1
-					DataBase::query(
-						"UPDATE ".DataBase::table('Nodes')." ".
-						"SET parentID = #0 ".
-						"WHERE parentID = #1 ".
-							"AND `order` >= #2 ",
-						array($dummy->id, $original->id, $order));
+					// Make C a child of 2 and D a child of 1 and E a child of this node
+					$original->getChildren()
+						->where('$order > #0', $order)
+						->update(array(
+							'parentID' => $clone->id,
+							'order!' => array('$order - #0', $order)));
 				}
-					
-				// Make D a child of N
-				DataBase::query(
-					"UPDATE ".DataBase::table('Nodes')." ".
-					"SET parentID = #0 ".
-					"WHERE parentID = #1 ".
-						"AND `order` > #2",
-					array($this->id, $previousSibling->id, $reference->order));
 			}
 		}
+	}
+	
+	public function canDeleteAsElement() {
+		if ($this->isLeaf)
+			return true;
+		
+		// Way 1: Children will be moved to preceeding sibling
+		$newParent = $this->getPreviousHeading();
+		if (!$newParent) {
+			// Way 2: This node will be replaced by its children
+			$newParent = $this->getParent();
+			if (!$newParent || $newParent->type == 'folder')
+				return false;
+				
+			// Depth will be changed, so headings are not allowed
+			if ($this->getChildren()->where("NOT isLeaf")->count())
+				return false;
+		}
+			
+		return true;
+	}
+	
+	public function deleteAsElement() {
+		// TODO: Sometimes, the order fields are not updated correctly.
+		if (!$this->isLeaf) {		
+			// Way 1: Children will be moved to preceeding sibling
+			$newParent = $this->getPreviousHeading();
+			if ($newParent) {
+				$startOrder = self::getMaxOrder($newParent->id);
+				// Append to the end
+				$this->getChildren()
+					->update(array(
+						'parentID' => $newParent->id,
+						array('$order = $order + #0', $startOrder)));
+			}else {
+				// Way 2: This node will be replaced by its children
+				$newParent = $this->getParent();
+				if (!$newParent || $newParent->type == 'folder')
+					return false;
+					
+				// Depth will be changed, so headings are not allowed
+				$hasHeadingChildren = $this->getChildren()
+					->where("NOT isLeaf")
+					->count() > 0;
+				if ($hasHeadingChildren)
+					return false;
+					
+				// Insert children at same position as this node
+				$childCount = $this->getChildren()->count();
+				$this->getSucceedingSiblings()
+					->update('$order = $order + #0', $childCount - 1); // replacing 1 child by $childCount children
+				if ($childCount) {
+					$this->getChildren()
+						->update(array(
+							'parentID' => $newParent->id,
+							array('$order = $order + #0', $this->order),
+							'$depth = $depth - 1'));
+				}
+			}
+		}
+			
+		parent::delete();
 	}
 	
 	public function insertAsLast() {
@@ -198,27 +244,18 @@ class Node extends Model {
 	 */
 	public function insertAt($order) {
 		// Move all following nodes downwards
-		DataBase::query(
-			"UPDATE ".DataBase::table('Nodes')." ".
-			"SET `order` = `order` + 1 ".
-			"WHERE parentID = #0 ".
-				"AND `order` >= #1 ",
-			array($this->parentID, $order));
+		$this->getSiblings()
+			->where('$order >= #0', $order)
+			->update('$order = $order + 1');
 			
 		$this->order = $order;
 		$this->insert();
 	}
 	
 	private function insert() {
-		DataBase::query(
-			"INSERT INTO ".DataBase::table('Nodes')." ".
-			"SET parentID = #0, isLeaf = #1, type = #2, depth = #3, `order` = #4, title = #5, ".
-				"createTime = NOW(), editTime = NOW() ",
-			array($this->parentID, $this->isLeaf, $this->type, $this->depth, $this->order, 
-				$this->title));
-		$this->id = DataBase::getInsertID();
 		$this->createTime = time();
 		$this->editTime = time();
+		$this->insertAll();
 		$this->dbTitle = $this->title;
 		
 		if ($this->content) {
@@ -229,11 +266,7 @@ class Node extends Model {
 	
 	public function saveChanges() {
 		if ($this->title != $this->dbTitle) {
-			DataBase::query(
-				"UPDATE ".DataBase::table('Nodes')." ".
-				"SET title = #0, editTime = NOW() ".
-				"WHERE id = #1",
-				array($this->title, $this->id));
+			$this->update(array('title', 'editTime!' => 'NOW()'));
 			$this->editTime = time();
 			$this->dbTitle = $this->title;
 		}
@@ -267,19 +300,12 @@ class Node extends Model {
 			$target = 0;
 			
 		// Move B and C (in exmample above) downwards
-		DataBase::query(
-			"UPDATE ".DataBase::table('Nodes')." ".
-			"SET order = order + 1 ".
-			"WHERE parentID = #0".
-				"AND order >= #1 AND order < #2 ",
-			array($this->parentID, $target, $this->order));
+		$this->getPrecedingSiblings()
+			->where('$order < #0', $target)
+			->update('$order = $order - 1');
 			
 		// Move D upwards
-		DataBase::query(
-			"UPDATE ".DataBase::table('Nodes')." ".
-			"SET order = $target ".
-			"WHERE id = #0",
-			array($this->id));
+		parent::update(array('order' => $target));
 		$this->order = $target;
 	}
 	
@@ -295,19 +321,12 @@ class Node extends Model {
 		$target = min($target, $max);
 			
 		// Move C and D (in exmample above) upwards
-		DataBase::query(
-			"UPDATE ".DataBase::table('Nodes')." ".
-			"SET order = order - 1 ".
-			"WHERE parentID = #0".
-				"AND order > #1 AND order <= #2 ",
-			array($this->parentID, $this->order, $target));
+		$this->getSucceedingSiblings()
+			->where('$order < #0', $target)
+			->update('$order = $order - 1');
 			
 		// Move B downwards
-		DataBase::query(
-			"UPDATE ".DataBase::table('Nodes')." ".
-			"SET order = $target ".
-			"WHERE id = #0",
-			array($this->id));
+		parent::update(array('order' => $target));
 		$this->order = $target;
 	}
 	
@@ -317,19 +336,11 @@ class Node extends Model {
 		// -> A C D
 		
 		// Move C and D (in example above) upwards
-		DataBase::query(
-			"UPDATE ".DataBase::table('Nodes')." ".
-			"SET order = order - 1 ".
-			"WHERE parentID = #0".
-				"AND order > #",
-			array($this->parentID, $this->order));
+		$this->getSucceedingSiblings()
+			->update('$order = $order - 1');
 			
 		// Delete B
-		DataBase::query(
-			"DELETE FROM ".DataBase::table('users')." ".
-			"WHERE id = #0",
-			$this->id);
-		unset($this->id);
+		parent::delete();
 	}
 	
 	public function getChildren() {
@@ -339,6 +350,22 @@ class Node extends Model {
 		return Query::from(self::table())
 			->whereEquals('parentID', $this->id)
 			->orderBy('order');
+	}
+	
+	public function getSiblings() {
+		return Query::from(self::table())
+			->whereEquals('parentID', $this->parentID)
+			->orderBy('order');
+	}
+	
+	public function getSucceedingSiblings() {
+		return $this->getSiblings()
+			->where('$order > #0', $this->order);
+	}
+	
+	public function getPrecedingSiblings() {
+		return $this->getSiblings()
+			->where('$order < #0', $this->order);
 	}
 	
 	public function createChildHeading($title) {
@@ -352,6 +379,59 @@ class Node extends Model {
 		$node->title = $title;
 		$node->depth = $this->depth + 1;
 		return $node;
+	}
+	
+	public function getParent() {
+		if ($this->parentID)
+			return self::getByID($this->parentID);
+		else
+			return null;
+	}
+	
+	public function getPrevious() {
+		if ($this->order > 0) {
+			return $this->getSiblings()
+				->whereEquals('order', $this->order - 1)
+				->first();
+		} else {
+			return $this->getParent();
+		}
+	}
+	
+	public function getPreviousHeading() {
+		if ($this->order > 0) {
+			$heading = $this->getSiblings()
+				->where('$order < #0', $this->order)
+				->where('NOT $isLeaf')
+				->orderByDescending('order')
+				->first();
+			if ($heading)
+				return $heading;
+		}
+		return null;
+	}
+	
+	public function getNextSibling() {
+		return Query::from(self::table())
+			->whereEquals('order', $this->order + 1)
+			->first();
+	}
+	
+	public function getNext($includeChildren = true) {
+		$obj = null;
+			
+		if (!$this->isLeaf)
+			$obj = $this->getChildren()->first();
+		
+		if (!$obj) {
+			$obj = $this->getNextSibling();
+			if (!$obj) {
+				$parent = $this->getParent();
+				if ($parent)
+					$obj = $parent->getNext(false);
+			}
+		}
+		return $obj;
 	}
 	
 	public function createChildLeaf($type) {
@@ -377,16 +457,9 @@ class Node extends Model {
 	}
 	
 	private static function getMaxOrder($parentID) {
-		$result = DataBase::query(
-			"SELECT MAX(`order`) AS maxOrder ".
-			"FROM ".DataBase::table('Nodes')." ".
-			"WHERE parentID = #0",
-			array($parentID));
-		if ($result) {
-			list($maxOrder) = mysql_fetch_array($result);
-			return $maxOrder;
-		} else
-			return null;
+		return Query::from(self::table())
+			->whereEquals('parentID', $parentID)
+			->max('order');
 	}
 	
 	private function hasFollowingSiblings() {
@@ -398,15 +471,13 @@ class Node extends Model {
 	}
 	
 	public static function updateAllDepths($id = 0, $rootDepth = 0) {
-		DataBase::query(
-			"UPDATE ".DataBase::table('Nodes')." ".
-			"SET depth = '$rootDepth' ".
-			"WHERE parentID = '$id'");
+		Query::from(self::table())
+			->where('parentID', $id)
+			->update('depth', $rootDepth);
 		
 		$nodes = Query::from(self::table())
 			->whereEquals('parentID', $id)
-			->select('depth', 'id')
-			->all();
+			->select('depth', 'id');
 		foreach ($nodes as $node) {
 			$node->updateDepthRecursively();
 		}

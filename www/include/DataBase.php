@@ -34,7 +34,7 @@ class DataBase {
 					$param = "'".DataBase::escape((string)$param)."'";
 			}
 			$callback = create_function('$matches',
-				'$params = json_decode(\''.addcslashes(json_encode($params), '\'\\').'\'); '."\n".
+				'$params = (array)json_decode(\''.addcslashes(json_encode($params), '\'\\').'\'); '."\n".
 				'$name = $matches[1]; if (isset($params[$name])) return $params[$name]; '.
 				'else throw new Exception("Unknown parameter: $name");');
 			$query = preg_replace_callback('/#([0-9a-zA-Z_]+)/', $callback, $query);
