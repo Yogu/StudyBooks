@@ -1,12 +1,10 @@
 <?php
 defined('IN_APP') or die;
 
-class Query {
+class Query implements IteratorAggregate, Countable, ArrayAccess {
 	private $sql = null;
 	private $table;
 	private $order;
-	private $limitStart;
-	private $limitCount;
 	private $where;
 	private $select;
 	
@@ -16,6 +14,10 @@ class Query {
 		$query = new Query();
 		$query->table = $table;
 		return $query;
+	}
+	
+	public function getTable() {
+		return $table;
 	}
 	
 	/**
@@ -52,14 +54,6 @@ class Query {
 	
 	public function orderByDescending($column) {
 		return $this->orderBY($column, "DESC");
-	}
-
-	public function limit($startIndex, $count) {
-		$this->limitStart = $startIndex === null ? null : (int)$startIndex;
-		$this->limitCount = $count === null ? null : (int)$count;
-			
-		$this->sql = null;
-		return $this;
 	}
 	
 	/**
@@ -163,95 +157,130 @@ class Query {
 	
 	public function getSQL() {
 		if ($this->sql === null) {
-			$table = DataBase::table($this->table->tableName);
 			
-			// SELECT
-			$columns = $this->select ? $this->select : $this->table->columns;
-			$select = '';
-			foreach ($columns as $column => $dummy) {
-				if ($select)
-					$select .= ', ';
-				$c = $this->formatColumn($column);
-				$select .= "$c AS `$column`";
-			}
-			$select = "SELECT $select ";
-			
-			// FROM
-			$from = "FROM `$table` AS t ";
-			
-			// LIMIT
-			if ($this->limitStart !== null || $this->limitCount !== null) {
-				$start = $this->limitStart !== null ? $this->limitStart : 0;
-				$count = $this->limitCount !== null ? $this->limitCount : self::MAX_INT;
-				$limit = "LIMIT $start, $count ";
-			} else
-				$limit = "";
-				
-			// ORDER
-			if (is_array($this->order)) {
-				$order = '';
-				foreach ($this->order as $arr) {
-					if ($order)
-						$order .= ', ';
-					$order .=  $arr[0].' '.$arr[1]; // column name and direction
-				}
-				$order = "ORDER BY $order ";
-			} else
-				$order = "";
+			$select = $this->buildSelectSQL();
+			$from = $this->buildFromSQL();
+			$order = $this->buildOrderSQL();
 			
 			$this->sql =
 				$select.
 				$from.
 				$this->where.
-				$order.
-				$limit;
+				$order;
 		}
 		return $this->sql;
 	}
 	
-	public function execute() {
-		return DataBase::query($this->getSQL());
+	private function buildSelectSQL() {
+		$columns = $this->select ? $this->select : $this->table->columns;
+		$select = '';
+		foreach ($columns as $column => $dummy) {
+			if ($select)
+				$select .= ', ';
+			$c = $this->formatColumn($column);
+			$select .= "$c AS `$column`";
+		}
+		return "SELECT $select ";
 	}
 	
-	public function first($count = 1) {
-		$query = clone $this;
-		$query->limitCount = $count;
-		$result = $query->execute();
-		if ($data = mysql_fetch_array($result))
-			return $this->createObject($data);
-		else
-			return null;
+	private function buildFromSQL() {
+		$table = DataBase::table($this->table->tableName);
+		return "FROM `$table` AS t ";
 	}
 	
-	public function last($count = 1) {
-		$query = clone $this;
-		$query->reverse();
-		$query->limitCount = $count;
-		$result = $query->execute();
-		if ($data = mysql_fetch_array($result))
-			return $this->createObject($data);
-		else
-			return null;
+	private function buildOrderSQL() {
+		if (is_array($this->order)) {
+			$order = '';
+			foreach ($this->order as $arr) {
+				if ($order)
+					$order .= ', ';
+				$order .=  $arr[0].' '.$arr[1]; // column name and direction
+			}
+			return "ORDER BY $order ";
+		} else
+			return '';
 	}
 	
-	public function all() {
-		$result = $this->execute();
+	private function buildLimitSQL($start, $count) {
+		if ($start !== null || $count !== null) {
+			$start = $start !== null ? $start : 0;
+			$count = $count !== null ? $count : self::MAX_INT;
+			return "LIMIT $start, $count ";
+		} else
+			return '';
+	}
+	
+	public function execute($sql = null) {
+		if ($sql === null)
+			$sql = $this->getSQL();
+		
+		$result = DataBase::query($sql);
 		$objects = array();
 		while ($data = mysql_fetch_array($result)) {
-			$objects[] = $this->createObject($data);
+			$objects[] = $this->table->createObjectFromArray($data);
 		}
 		return $objects;
 	}
 	
-	private function createObject($data) {
-		// MySQL also returns numeric keys for all the values
-		foreach ($data as $k => $v) {
-			if (is_int($k))
-				unset($data[$k]);
-		}
+	public function range($start, $count) {
+		$sql = $this->getSQL().
+			$this->buildLimitSQL($start, $count);
+		return $this->execute($sql);
+	}
+	
+	public function get($index) {
+		$arr = $this->range($index, 1);
+		return count($arr) ? $arr[0] : null;
+	}
+	
+	public function first($count = null) {
+		$arr = $this->range(0, $count === null ? 1 : $count);
+		if ($count === null)
+			return count($arr) ? $arr[0] : null;
+		else
+			return $arr;
+	}
+	
+	public function last($count = null) {
+		$query = clone $this;
+		$query->reverse();
+		return $query->first($count);
+	}
+	
+	public function all() {
+		return $this->execute();
+	}
+	
+	public function count() {
+		$sql =
+			"SELECT COUNT(*) AS count ".
+			$this->buildFromsQL().
+			$this->where;
 		
-		$class = $this->table->className;
-		$obj = new $class($data);
-		return $obj;
+		$result = DataBase::query($sql);
+		if (list($count) = mysql_fetch_array($result))
+			return $count;
+		else
+			return 0;
+	}
+	
+	public function getIterator() {
+		return new QueryIterator($this);
+	}
+	
+	public function offsetGet($index) {
+		return $this->get($index);
+	}
+	
+	public function offsetExists($index) {
+		return is_int($index) && $index >= 0 && $index < $this->count();
+	}
+	
+	public function offsetSet($offset, $value) {
+		return Exception("Method offsetSet not implemented");
+	}
+	
+	public function offsetUnset($offset) {
+		return Exception("Method offsetUnset not implemented");
 	}
 }

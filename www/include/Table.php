@@ -19,4 +19,16 @@ class Table {
 		$this->tableName = $tableName;
 		$this->columns = $columns;
 	}
+	
+	public function createObjectFromArray($data) {
+		// MySQL also returns numeric keys for all the values
+		foreach ($data as $k => $v) {
+			if (is_int($k))
+				unset($data[$k]);
+		}
+		
+		$class = $this->className;
+		$obj = new $class($data);
+		return $obj;
+	}
 }

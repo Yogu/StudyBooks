@@ -5,7 +5,7 @@ class TreeController extends Controller {
 	public function index() {
 		if ($r = $this->requireLogin()) return $r;
 		
-		$this->data->nodes = $this->loadNodes(0, true);
+		$this->data->nodes = $this->loadNodes(0, false);
 		
 		return $this->view();
 	}
@@ -85,7 +85,6 @@ class TreeController extends Controller {
 				$newDepth = $book->depth + $relativeDepth;
 				$newNode->type = 'heading';
 				$newNode->isLeaf = false;
-				$newNode->parentID = 0;
 				$newNode->title = $this->request->post('title');
 				break;
 			case 'text':
@@ -95,7 +94,6 @@ class TreeController extends Controller {
 					$newDepth = $reference->depth + 1; 
 				$newNode->type = 'text';
 				$newNode->isLeaf = true;
-				$newNode->parentID = $reference->parentID;
 				$newNode->order = $reference->order + 1;
 				$content = new NodeText();
 				$content->text = $this->request->post('text');

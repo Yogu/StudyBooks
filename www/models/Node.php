@@ -57,85 +57,130 @@ class Node extends Model {
 	 *              
 	 * When adding N after B with secondary depth (depth = 2). Note that C has changed its parent.
 	 * 
+	 * TODO: Make this function shorter.
+	 * 
 	 * @param Node $reference the node after which to add
 	 * @param int $depth the target depth of this node
 	 */
 	public function insertAsElementAfter(Node $reference, $depth) {
-		if ($depth == $reference->depth) {
-			$this->parentID = $reference->parentID;
-			$this->depth = $depth;
-			$this->insertAt($reference->order + 1);
-			
-			// Children of reference become children of this node
-			DataBase::query(
-				"UPDATE ".DataBase::table('Nodes')." ".
-				"SET parentID = #0 ".
-				"WHERE parentID = #1",
-				array($this->id, $reference->id));
-		} else if ($depth > $reference->depth) {
-			$depth = $reference->depth + 1; // don't allow more indentation
-			$this->parentID = $reference->id;
-			$this->depth = $depth;
-			$this->insertAt(0); // insert as first child
-		} else if ($depth >= 0) {
-			// A         A
-			//  B         B
-			//   C   =>  N    <- this node
-			//  D         1   <- dummy node has to be created
-			// E           C
-			//            D
-			//           E
-
-			$node = $reference;
-			$nodesWithFollowingSiblings = array();
-			while ($node && $node->depth > $depth) {
-				if (count($nodesWithFollowingSiblings) || $node->hasFollowingSiblings()) { // like B in example
-					array_unshift($nodesWithFollowingSiblings, $node);
-				}
-				
-				$lastNode = $node;
-				$node = Query::from(self::table())
-					->whereEquals('id', $node->parentID)
-					->first();
+		if ($this->isLeaf) {
+			if ($reference->isLeaf) {
+				$this->parentID = $reference->parentID;
+				$this->depth = $reference->depth;
+				$this->insertAt($reference->order + 1);
+			} else {
+				$this->parentID = $reference->id;
+				$this->depth = $reference->depth + 1;
+				$this->insertAt(0);
 			}
-			$previousSibling = $node;
-			
-			if ($previousSibling == null)
-				throw new RuntimeException('Assertion failed: $previousSibling is null, tree seems to be corrupt');
-				
-			// Insert after A in example
+		} else {
+			// Can't create children of leaves
+			if ($reference->isLeaf)
+				$depth = min($depth, $reference->depth);
+			else
+				$depth = min($depth, $reference->depth + 1);
 			$this->depth = $depth;
-			$this->parentID = $node->parentID;
-			$this->insertAt($node->order + 1);
 			
-			// Add dummy nodes
-			$lastID = $this->id;
-			// Dummy is only needed for nodes which _contain_ nodes with following siblings
-			for ($i = 0; $i < count($nodesWithFollowingSiblings) - 1; $i++) {
-				$original = $nodesWithFollowingSiblings[$i];
-				$child = $nodesWithFollowingSiblings[$i + 1];
-				$dummy = clone $original;
-				$dummy->parentID = $lastID;
-				$dummy->order = 0;
-				$dummy->insert();
-				$lastID = $dummy->id;
+			if ($depth > $reference->depth) { // Reference is NO leaf (see above)
+				$this->parentID = $reference->id;
 				
-				// Make C a child of 1
+				// Don't use insertAt(0), this would move the new children of this node
+				$this->order = 0;
+				$this->insert(); 
+				
+				// Leaf-children of reference become children of this node
 				DataBase::query(
 					"UPDATE ".DataBase::table('Nodes')." ".
 					"SET parentID = #0 ".
 					"WHERE parentID = #1 ".
-						"AND `order` > #2 ",
-					array($dummy->id, $original->id, $child->order));
-			}
+						"AND isLeaf ",
+					array($this->id, $reference->id));
+			} elseif ($depth == $reference->depth) {
+				$this->parentID = $reference->parentID;
+				$this->insertAt($reference->order + 1);
+					
+				if ($reference->isLeaf) {
+					// Leaf-children of parent, beginning below reference, become children of new node
+					DataBase::query(
+						"UPDATE ".DataBase::table('Nodes')." ".
+						"SET parentID = #0 ".
+						"WHERE parentID = #1 ".
+							"AND isLeaf ".
+							"AND `order` > #2",
+						array($this->id, $this->parentID, $reference->order));
+				} else { // reference is not a leaf
+					// All children of reference become children of this node
+					DataBase::query(
+						"UPDATE ".DataBase::table('Nodes')." ".
+						"SET parentID = #0 ".
+						"WHERE parentID = #1",
+						array($this->id, $reference->id));
+				}
+			} else if ($depth >= 0) {
+				// A         A
+				//  B         B
+				//   C   =>  N    <- this node
+				//  D         1   <- dummy node has to be created
+				// E           C
+				//            D
+				//           E
+	
+				$node = $reference;
+				// second item of array: order of first following child
+				if ($reference->getChildren()->count())
+					$nodesWithFollowingChildren = array(array($reference, 0));
+				else
+					$nodesWithFollowingChildren = array();
+				$lastNode = null;
+				while ($node && $node->depth > $depth) {
+					// In example, B has following siblings, thus A has a following child
+					if ($lastNode && (count($nodesWithFollowingChildren) || $lastNode->hasFollowingSiblings())) {
+						array_unshift($nodesWithFollowingChildren, array($node, $lastNode->order + 1));
+					}
+					
+					$lastNode = $node;
+					$node = Query::from(self::table())
+						->whereEquals('id', $node->parentID)
+						->first();
+				}
+				$previousSibling = $node;
 				
-			// Make D a child of N
-			DataBase::query(
-				"UPDATE ".DataBase::table('Nodes')." ".
-				"SET parentID = #0 ".
-				"WHERE parentID = #1 ".
-					"AND `order` > #2",
-				array($this->id, $previousSibling->id, $reference->order));
+				if ($previousSibling == null)
+					throw new RuntimeException('Assertion failed: $previousSibling is null, tree seems to be corrupt');
+					
+				// Insert after A in example
+				$this->parentID = $previousSibling->parentID;
+				$this->insertAt($previousSibling->order + 1);
+				
+				// Add dummy nodes
+				$lastID = $this->id;
+				// Dummy is only needed for nodes which _contain_ nodes with following siblings
+				foreach ($nodesWithFollowingChildren as $arr) {
+					$original = $arr[0];
+					$order = $arr[1];
+					$dummy = clone $original;
+					$dummy->parentID = $lastID;
+					$dummy->order = 0;
+					$dummy->insert();
+					$lastID = $dummy->id;
+					
+					// Make C a child of 1
+					DataBase::query(
+						"UPDATE ".DataBase::table('Nodes')." ".
+						"SET parentID = #0 ".
+						"WHERE parentID = #1 ".
+							"AND `order` >= #2 ",
+						array($dummy->id, $original->id, $order));
+				}
+					
+				// Make D a child of N
+				DataBase::query(
+					"UPDATE ".DataBase::table('Nodes')." ".
+					"SET parentID = #0 ".
+					"WHERE parentID = #1 ".
+						"AND `order` > #2",
+					array($this->id, $previousSibling->id, $reference->order));
+			}
 		}
 	}
 	
@@ -288,13 +333,12 @@ class Node extends Model {
 	}
 	
 	public function getChildren() {
-		if (!$id)
+		if (!$this->id)
 			throw new Exception("This node is not inserted");
 			
 		return Query::from(self::table())
 			->whereEquals('parentID', $this->id)
-			->orderBy('order')
-			->all();
+			->orderBy('order');
 	}
 	
 	public function createChildHeading($title) {

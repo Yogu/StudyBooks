@@ -389,7 +389,7 @@ table > tbody > tr.group-header > td {
 .book-form-choice span {
 	float: left;
 	padding: 5px 10px;
-	margin-right: 20px;
+	margin-right: 10px;
 	color: #000000;
 	
 	text-shadow: 0 0 3px #FFFFFF;
@@ -429,6 +429,7 @@ table > tbody > tr.group-header > td {
 
 .book-form-choice .choice-cancel {
 	color: rgba(0, 0, 0, 0.5);
+	text-shadow: none;
 }
 
 .book-form textarea,
