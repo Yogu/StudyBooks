@@ -64,7 +64,7 @@ class Request {
 		$this->action = trim($this->parameters['action']);
 			
 		// Session
-		if ($this->cookies->session) {
+		if ($this->cookies->session && !defined('NO_DB') || !NO_DB) {
 			$this->session = Session::getVaildByKey($this->cookies->session);
 			if ($this->session) {
 				$this->session->hit();

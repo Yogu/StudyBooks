@@ -34,7 +34,7 @@ class User extends Model {
 	
 	public static function getByName($name) {
 		return self::query()
-			->whereEquals('name', $name)
+			->where('LOWER($name) = #0', $name)
 			->first();
 	}
 	
@@ -43,7 +43,7 @@ class User extends Model {
 	}
 	
 	public function insert() {
-		$this->hashedPassowrd = self::hashPassword($this->rawPassword);
+		$this->hashedPassword = self::hashPassword($this->rawPassword);
 		$this->createTime = time();
 		$this->insertAll();
 	}

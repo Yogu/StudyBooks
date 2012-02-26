@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<database>
+	<table name="Users">
+		<column name="id" type="uint" autoIncrement="true" key="primary" />
+		<column name="name" type="string" key="unique" />
+		<column name="email" type="string" />
+		<column name="password" type="string(64)" />
+		<column name="role" type="enum(guest,poster,admin)" default="poster" />
+		<column name="isBanned" type="bool" />
+		<column name="createTime" type="datetime" />
+		<column name="lastLoginTime" type="datetime" default="0000-00-00 00:00:00" />
+	</table>
+	
+	<table name="Config">
+		<column name="name" type="string" key="primary" />
+		<column name="value" type="text" />
+	</table>
+	
+	<table name="Sessions">
+		<column name="id" type="uint" autoIncrement="true" key="primary" />
+		<column name="userID" type="uint" key="true" />
+		<column name="key" type="string(64)" />
+		<column name="startTime" type="datetime" />
+		<column name="lastAccessTime" type="datetime" />
+		<column name="ip" type="string" />
+		<column name="userAgent" type="text" />
+		<column name="loggedOut" type="bool" default="false" key="true" />
+	</table>
+	
+	<table name="Log">
+		<column name="id" type="uint" autoIncrement="true" key="primary" />
+		<column name="time" type="datetime" key="true" />
+		<column name="message" type="text" />
+	</table>
+	
+	<table name="Nodes">
+		<column name="id" type="uint" autoIncrement="true" key="primary" />
+		<column name="parentID" type="uint" index="true" />
+		<column name="order" type="uint" index="true" />
+		<column name="isLeaf" type="bool" />
+		<column name="depth" type="uint" />
+		<column name="type" type="enum(folder,book,heading,text,file)" />
+		<column name="createTime" type="datetime" />
+		<column name="editTime" type="datetime" />
+		<column name="title" type="string" />
+	</table>
+	
+	<talbe name="NodesText">
+		<column name="nodeID" type="uint" key="primary" />
+		<column name="text" type="text" />
+	</talbe>
+	
+	<table name="NodesFile">
+		<column name="nodeID" type="uint" key="primary" />
+		<column name="fileName" type="string" />
+		<column name="size" type="ulong" />
+		<column name="type" type="string" />
+	</table>
+</database>

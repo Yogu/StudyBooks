@@ -71,6 +71,15 @@ class DataBase {
 			self::$_dbLink = null;
 		}
 	}
+	
+	public static function getTables() {
+		$result = self::query("SHOW TABLES");
+		$tables = array();
+		while ($arr = mysql_fetch_array($result)) {
+			$tables[] = $arr[0];
+		}
+		return $tables;
+	}
 }
 
 

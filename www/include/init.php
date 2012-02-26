@@ -81,8 +81,13 @@ if (get_magic_quotes_gpc()) {
     }
     unset($process);
 }
-			
-Config::load();
-Language::load();
-setlocale(LC_ALL, Config::$config->general->locale);
 
+function load() {
+	Config::load();
+	Language::load();
+	setlocale(LC_ALL, Config::$config->general->locale);
+}
+
+if (!defined('NO_LOAD') || !NO_LOAD) {
+	load();
+}

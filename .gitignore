@@ -1,4 +1,6 @@
-include/Config.ini # instead, Config.default.ini is commited
+# instead, config.default.ini is commited
+www/config/config.ini
+
 www/cache
 
 # Linux

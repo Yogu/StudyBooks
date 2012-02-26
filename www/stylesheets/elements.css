@@ -1,23 +1,21 @@
-.errors {
+.errors,
+.success,
+.warning {
 	margin: 0.5em 0;
 	padding: 5px;
 	border-radius: 5px;
 	-moz-border-radius: 5px;
 	-webkit-border-radius: 5px;
 	-o-border-radius: 5px;
-	
+}
+
+.errors,
+.warning {
 	border: 1px solid #DDA0A0;
 	background: #FFC0C0;
 }
 
 .success {
-	margin: 0.5em 0;
-	padding: 5px;
-	border-radius: 5px;
-	-moz-border-radius: 5px;
-	-webkit-border-radius: 5px;
-	-o-border-radius: 5px;
-	
 	border: 1px solid #A0DDA0;
 	background: #C0FFC0;
 }
@@ -61,8 +59,8 @@ fieldset {
 	border: none;
 }
 
-fieldset.buttons input {
-	margin-left: 210px;
+fieldset.buttons {
+	padding-left: 210px;
 }
 
 input,

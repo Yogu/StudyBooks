@@ -106,4 +106,23 @@ class FileInfo {
 			$fileName = 'file' . ($ext ? '.' . $ext : '');
 		return $fileName;
 	}
+	
+	public static function safeFileRewrite($fileName, $dataToSave) {
+		if ($fp = fopen($fileName, 'w')) {
+			$startTime = microtime();
+			do {
+				$canWrite = flock($fp, LOCK_EX);
+				//If lock not obtained sleep for 0 - 100 milliseconds, to avoid collision and CPU load
+				if(!$canWrite)
+					usleep(round(rand(0, 100)*1000));
+			} while ((!$canWrite)and((microtime()-$startTime) < 1000));
+	
+			// file was locked so now we can store information
+			if ($canWrite) {
+				fwrite($fp, $dataToSave);
+				flock($fp, LOCK_UN);
+			}
+			fclose($fp);
+		}
+	}
 }

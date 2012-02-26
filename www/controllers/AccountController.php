@@ -37,6 +37,12 @@ class AccountController extends Controller {
 			$this->request->cookies->session = '';
 			$this->request->session = null;
 			$this->request->user = null;
+					
+			if (isset($this->request->post['referer']))
+				$url = $this->request->post['referer'];
+			else
+				$url = $this->request->internalURL;
+			return $this->redirectToURL($url);
 		}
 		
 		return $this->view();

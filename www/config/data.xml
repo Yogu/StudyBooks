@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<data>
+	<table name="Config">
+		<row name="general.cookiePrefix" value="" />
+		<row name="general.imprint" value="In some countries, public web sites require an imprint. You can configure this imprint by editing the configuration property &lt;i&gt;general.imprint&lt;/i&gt;." />
+		<row name="general.isDebugMode" value="false" />
+		<row name="general.locale" value="en_US" />
+		<row name="mail.greetings" value="Best regards." />
+		<row name="mail.welcomeBody" value="Welcome to StudyBooks!" />
+		<row name="security.sessionLength" value="18000" />
+		<row name="site.email" value="webmaster@example.com" />
+		<row name="site.title" value="StudyBooks" />
+	</table>
+</data>

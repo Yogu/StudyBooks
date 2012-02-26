@@ -29,6 +29,7 @@
 					<div>{l LOGGED_IN_AS} <b>{html $request->user->name}</b> {l LOGGED_IN_AS_}</div>
 					<div>
 						<form action="{url login account}" method="post">
+							<input type="hidden" name="referer" value="{html $request->internalURL}" />
 							<input type="submit" name="logout" value="{l LOG_OUT}" />
 						</form>
 					</div>

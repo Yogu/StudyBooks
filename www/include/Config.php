@@ -5,14 +5,12 @@ class Config {
 	public static $config;
 	
 	public static function load() {
-		if (self::$config === null) {
-			$config = parse_ini_file(ROOT_PATH . 'config/config.ini', true);
-			if (!$config)
-				throw new Exception("Failed to load config file");
-			
+		if (self::$config === null) {			
+			$config = self::loadFile();
 			self::$config = self::arrayToObject($config);
 			
-			if (!self::$config->general->isOffline) {
+			$noDB = (defined('NO_DB') && NO_DB) || self::$config->general->isOffline;
+			if (!$noDB) {
 				$result = DataBase::query(
 					"SELECT name, value ".
 					"FROM ".self::$config->dataBase->prefix."config");
@@ -30,13 +28,15 @@ class Config {
 			
 			self::$config = self::arrayToObject($config);
 			
-			try {
-				DataBase::query("SET time_zone = 'UTC';");
-			} catch (Exception $e) {
-				
+			if (!$noDB) {
+				try {
+					DataBase::query("SET time_zone = 'UTC';");
+				} catch (Exception $e) {
+					
+				}
 			}
 		}
-	} 
+	}
 	
 	private static function arrayToObject($array) {
 		$obj = new stdClass();
@@ -47,6 +47,61 @@ class Config {
 				$obj->$key = $value;
 		}
 		return $obj;
+	}
+	
+	private static function objectToArray($obj) {
+		$arr = array();
+		foreach ($obj as $key => $value) {
+			if (is_object($value))
+				$arr[$key] = self::objectToArray($value);
+			else
+				$arr[$key] = $value;
+		}
+		return $arr;
+	}
+	
+	private static function deepMerge($obj1, $obj2) {
+		$new = clone $obj1;
+		foreach ($obj2 as $key => $value) {
+			if (is_object($value)) {
+				if (isset($new->$key))
+					$new->$key = self::deepMerge($new->$key, $value);
+				else
+					$new->$key = self::deepClone($value);
+			} else
+				$new->$key = $value;
+		}
+		return $new;
+	}
+	
+	private static function deepClone($obj) {
+		$new = clone $obj;
+		foreach ($new as $key => $value) {
+			if (is_object($value))
+				$new->$key = self::deepClone($value);
+		}
+		return $new;
+	}
+	
+	public static function save($values) {
+		$res = array();
+		$values = self::objectToArray(self::deepMerge(self::arrayToObject(self::loadFile()), $values));
+		foreach($values as $key => $val) {
+			if(is_array($val)) {
+				$res[] = "[$key]";
+				foreach($val as $skey => $sval)
+					$res[] = "$skey = ".(is_numeric($sval) ? $sval : '"'.$sval.'"');
+			} else
+				$res[] = "$key = ".(is_numeric($val) ? $val : '"'.$val.'"');
+		}
+		FileInfo::safeFileRewrite(ROOT_PATH . 'config/config.ini', implode("\r\n", $res));
+	}
+	
+	private static function loadFile() {
+		$config = parse_ini_file(ROOT_PATH . 'config/config.ini', true);
+		if (!$config)
+			throw new Exception("Failed to load config file");
+		return $config;
 	}
 }
 
