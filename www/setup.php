@@ -1,14 +1,16 @@
 <?php
+
+include('include/Loader.php');
+Loader::init();
+
 define('NO_DB', true);
-define('NO_LOAD', true);
-include('include/init.php');
 if (!file_exists(ROOT_PATH.'config/config.ini')) {
 	if (!copy(ROOT_PATH.'config/config.default.ini', ROOT_PATH.'config/config.ini')) {
 		echo "Unable to copy config file. Make sure that php has write permissions in the config directory.";
 		die;
 	}
 }
-load();
+Loader::loadConfig();
 
 $request = Request::createRequest();
 if ($request->post('submit')) {

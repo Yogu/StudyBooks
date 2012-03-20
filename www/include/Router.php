@@ -2,66 +2,76 @@
 defined('IN_APP') or die;
 
 class Router {
-	private static $rules;
+	private static $router;
 	
-	private static function getRules() {
-		if (!isset(self::$rules)) {
-			$fileName = ROOT_PATH.'config/routing.ini';
-			$lines = file($fileName, FILE_SKIP_EMPTY_LINES | FILE_IGNORE_NEW_LINES );
-			if (!$lines)
-				throw new Exception("Failed to read rules file");
-			$rules = array();
-			foreach ($lines as $line) {
-				$line = trim($line);
-				if (!$line || $line[0] == '#')
-					continue;
-					
-				$parts = explode(' ', $line);
-				$rule = new stdclass();
-				$rule->scheme = array_shift($parts);
-				
-				// Included Parameters
-				$rule->includedParameters = array();
-				if (preg_match_all('/\{([a-z_]+[a-z_0-9_]*)([^\}]*)}/', $rule->scheme, $matches, PREG_SET_ORDER)) {
-					foreach ($matches as $match) {
-						list($tmp, $name, $type) = $match;
-						$rule->includedParameters[$name] = $type;
-					}
-				}
-				
-				// Regex
-				$regex = $rule->scheme;
-				$regex = preg_replace('/\{([a-z_]+[a-z_0-9_]*)\:([^\}]+)\}/', '(?<$1>$2)', $regex);
-				$regex = preg_replace('/\{([a-z_]+[a-z_0-9_]*)\?\}/', '(?<$1>[^/]*)', $regex);
-				$regex = preg_replace('/\{([a-z_]+[a-z_0-9_]*)\}/', '(?<$1>[^/]+)', $regex);
-				$regex = str_replace('/', '/+', $regex);
-				$rule->regex = '%^/+'.$regex.'/+$%i';
-				
-				// Default Parameters
-				$rule->defaultParameters = array();
-				$rule->explicitParameters = array();
-				foreach ($parts as $part) {
-					list($key, $value) = explode('=', $part, 2);
-					$rule->defaultParameters[$key] = $value;
-
-					// Explicit parameters are those being set without the possibility of being modified by the url
-					if (!array_key_exists($key, $rule->includedParameters))
-						$rule->explicitParameters[$key] = $value;
-				}
-				
-				$rules[] = $rule;
-			}
-			self::$rules = $rules;
-		}
-		return self::$rules;
+	private $rules;
+	
+	public function loadDefaultFile() {
+		$fileName = ROOT_PATH.'config/routing.ini';
+		$this->loadFromFile($rileName);
 	}
 	
-	public static function resolve($url) {
-		$rules = self::getRules();
+	public function loadFromFile($fileName) {
+		$lines = file($fileName, FILE_SKIP_EMPTY_LINES | FILE_IGNORE_NEW_LINES );
+		if (!$lines)
+			throw new Exception("Failed to read rules file");
+		$this->loadFromLines($lines);
+	}
+	
+	public function loadFromLines($lines) {
+		$rules = array();
+		foreach ($lines as $line) {
+			$line = trim($line);
+			if (!$line || $line[0] == '#')
+				continue;
+				
+			$parts = explode(' ', $line);
+			$rule = new stdclass();
+			$rule->scheme = array_shift($parts);
+			
+			// Included Parameters
+			$rule->includedParameters = array();
+			if (preg_match_all('/\{([a-z_]+[a-z_0-9_]*)([^\}]*)}/', $rule->scheme, $matches, PREG_SET_ORDER)) {
+				foreach ($matches as $match) {
+					list($tmp, $name, $type) = $match;
+					$rule->includedParameters[$name] = $type;
+				}
+			}
+			
+			// Regex
+			$regex = $rule->scheme;
+			$regex = preg_replace('/\{([a-z_]+[a-z_0-9_]*)\:([^\}]+)\}/', '(?<$1>$2)', $regex);
+			$regex = preg_replace('/\{([a-z_]+[a-z_0-9_]*)\?\}/', '(?<$1>[^/]*)', $regex);
+			$regex = preg_replace('/\{([a-z_]+[a-z_0-9_]*)\}/', '(?<$1>[^/]+)', $regex);
+			$regex = str_replace('/', '/+', $regex);
+			$rule->regex = '%^/+'.$regex.'/+$%i';
+			
+			// Default Parameters
+			$rule->defaultParameters = array();
+			$rule->explicitParameters = array();
+			foreach ($parts as $part) {
+				list($key, $value) = explode('=', $part, 2);
+				$rule->defaultParameters[$key] = $value;
+
+				// Explicit parameters are those being set without the possibility of being modified by the url
+				if (!array_key_exists($key, $rule->includedParameters))
+					$rule->explicitParameters[$key] = $value;
+			}
+			
+			$rules[] = $rule;
+		}
+		$this->rules = $rules;
+	}
+	
+	public function getRules() {
+		return $this->rules;
+	}
+	
+	public function resolveURL($url) {
 		// Regex may require multiple slashes
 		$slashes = '//////////';
 		$url = $slashes . str_replace('/', $slashes, $url) . $slashes;
-		foreach ($rules as $rule) {
+		foreach ($this->rules as $rule) {
 			if (preg_match($rule->regex, $url, $matches)) {
 				// Unset numeric matches, only leave named parameters
 				foreach ($matches as $k => $v) {
@@ -75,7 +85,7 @@ class Router {
 		return array();
 	}
 	
-	public static function getURL($parameters) {
+	public function getURLForParameters($parameters) {
 		if (isset($parameters['controller']))
 			$parameters['controller'] = Strings::toLower($parameters['controller']);
 		if (isset($parameters['view']))
@@ -137,6 +147,22 @@ class Router {
 			$url = trim($url, '/');
 			return $url.$additional;
 		}
+	}
+	
+	public static function getRouter() {
+		if (!isset(self::$router)) {
+			self::$router = new Router();
+			self::$router->loadDefaultFile();
+		}
+		return self::$router;
+	}
+	
+	public static function resolve($url) {
+		self::getRouter()->resolveURL();
+	}
+	
+	public static function getURL($parameters) {
+		return self::getRouter()->getURLForParameters($parameters);
 	}
 }
 

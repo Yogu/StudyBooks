@@ -1,6 +1,8 @@
 <?php 
 
-include('include/init.php');
+include('include/Loader.php');
+
+Loader::load();
 
 if (Config::$config->general->isDebugMode) {
 	$user = new User();
