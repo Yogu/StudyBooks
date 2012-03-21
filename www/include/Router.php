@@ -8,7 +8,7 @@ class Router {
 	
 	public function loadDefaultFile() {
 		$fileName = ROOT_PATH.'config/routing.ini';
-		$this->loadFromFile($rileName);
+		$this->loadFromFile($fileName);
 	}
 	
 	public function loadFromFile($fileName) {
@@ -158,7 +158,7 @@ class Router {
 	}
 	
 	public static function resolve($url) {
-		self::getRouter()->resolveURL();
+		return self::getRouter()->resolveURL($url);
 	}
 	
 	public static function getURL($parameters) {

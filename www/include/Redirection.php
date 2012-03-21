@@ -19,7 +19,7 @@ class Redirection extends Response {
 		if ($location === null)
 			$location = $request->url;
 		elseif (!preg_match('/^[a-zA-Z0-9+.-]+\:/', $location))
-			$location = ROOT_URL.$location;
+			$location = $request->rootURL.$location;
 		$this->_location = $location;
 		$this->_statusCode = $code;
 	}

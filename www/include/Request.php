@@ -2,6 +2,7 @@
 defined('IN_APP') or die;
 
 class Request {
+	public $rootURL;
 	public $url;
 	public $internalURL;
 	public $absoluteURL;
@@ -30,34 +31,56 @@ class Request {
 	
 	public static function createRequest() {
 		$request = new Request();
+		$request->rootURL = 
+			substr($_SERVER['SCRIPT_NAME'], 0, strrpos($_SERVER['SCRIPT_NAME'], '/') + 1);
 		$request->startTime = microtime(true);
 		$request->url = $_SERVER['REQUEST_URI'];
-		$request->internalURL = substr($request->url, strlen(ROOT_URL));
-		if (($p = strpos($request->internalURL, '?')) !== false)
-			$request->internalURLTrunk = substr($request->internalURL, 0, $p);
-		else
-			$request->internalURLTrunk = $request->internalURL;
 		$request->isHTTPS = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] &&
 			$_SERVER['HTTPS'] != 'off' ? 's' : '';
-		$request->urlPrefix = 'http'.
-			($request->isHTTPS ? 's' : '').'://'.
-			$_SERVER['SERVER_NAME'].
-			($_SERVER['SERVER_PORT'] != 80 ? ':'.$_SERVER['SERVER_PORT'] : '').
-			substr($request->url, 0, strlen(ROOT_URL));
-		$request->absoluteURL = $request->urlPrefix.$request->internalURL;
-		$request->get = $_GET;
-		$request->post = $_POST;
+		$request->get = self::undoMagicQuotes($_GET);
+		$request->post = self::undoMagicQuotes($_POST);
 		$request->method = strtoupper($_SERVER['REQUEST_METHOD']);
-		$request->cookies = new CookieManager($_COOKIE);
+		$request->cookies = new CookieManager(self::undoMagicQuotes($_COOKIE));
 		$request->files = $_FILES;
 		$request->ip = $_SERVER['REMOTE_ADDR'];
 		$request->userAgent = $_SERVER['HTTP_USER_AGENT'];
 		$request->referer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
+		$request->urlPrefix = 'http'.
+			($request->isHTTPS ? 's' : '').'://'.
+			$_SERVER['SERVER_NAME'].
+			($_SERVER['SERVER_PORT'] != 80 ? ':'.$_SERVER['SERVER_PORT'] : '').
+			substr($request->url, 0, strlen($request->rootURL));
+			
 		$request->load();
 		return $request;
 	}
 	
+	private static function undoMagicQuotes($arr) {
+		if (get_magic_quotes_gpc()) {
+		    $process = array(&$arr);
+		    while (list($key, $val) = each($process)) {
+		        foreach ($val as $k => $v) {
+		            unset($process[$key][$k]);
+		            if (is_array($v)) {
+		                $process[$key][stripslashes($k)] = $v;
+		                $process[] = &$process[$key][stripslashes($k)];
+		            } else {
+		                $process[$key][stripslashes($k)] = stripslashes($v);
+		            }
+		        }
+		    }
+		}
+		return $arr;
+	}
+	
 	public function load() {
+		$this->internalURL = substr($this->url, strlen($this->rootURL));
+		if (($p = strpos($this->internalURL, '?')) !== false)
+			$this->internalURLTrunk = substr($this->internalURL, 0, $p);
+		else
+			$this->internalURLTrunk = $this->internalURL;
+		$this->absoluteURL = $this->urlPrefix.$this->internalURL;
+		
 		$this->parameters = Router::resolve($this->internalURLTrunk);
 		$this->parameters = array_merge($this->get, $this->parameters);
 		$this->controller = trim($this->parameters['controller']);
@@ -71,11 +94,6 @@ class Request {
 				$this->user = $this->session->user;
 			} 
 		}
-		
-		$this->data = new stdclass();
-		$this->data->config = Config::$config;
-		$this->data->rootURL = ROOT_URL;
-		$this->data->request = $this;
 	}
 	
 	public function getResponse() {
@@ -90,17 +108,19 @@ class Request {
 				if (is_callable($method))
 					return call_user_func($method);
 				else {
-					$this->data->details =
+					$data = new stdclass();
+					$data->details =
 						'Controller '.$this->controller.' has no action called '.$this->action;
-					return new View($this, '404', 'errors');
+					return new View($this, $data, '404', 'errors', 404);
 				}
 			} else {
-				$this->data->details =
+				$data = new stdclass();
+				$data->details =
 					'Controller '.$this->controller.' does not exist';
-				return new View($this, '404', 'errors');
+				return new View($this, $data, '404', 'errors', 404);
 			}
 		} else
-			return new View($this, '404', 'errors');
+			return new View($this, new stdclass(), '404', 'errors', 404);
 	}
 	
 	public function param($name) {

@@ -23,7 +23,6 @@ class Loader {
 	}
 	
 	public static function setErrorHandler() {
-		/* error handling */
 		$flags = (E_ALL | E_STRICT)/* & ~E_NOTICE*/;
 		$errorHandler = function($errno, $errstr, $errfile, $errline) {
 			global $isInErrorHandler;
@@ -54,10 +53,9 @@ class Loader {
 	
 	public static function initAutoloader() {
 		// __DIR__ not available on all servers
-		define('ROOT_PATH', dirname(__FILE__).'/../');
-		define('ROOT_URL', substr($_SERVER['SCRIPT_NAME'], 0, strrpos($_SERVER['SCRIPT_NAME'], '/') + 1));
+		if (!defined('ROOT_PATH'))
+			define('ROOT_PATH', dirname(__FILE__).'/../');
 		
-		/* autoload */
 		$callback = function($className) {
 			$paths = array('include', 'models', 'controllers');
 			
@@ -72,35 +70,12 @@ class Loader {
 		spl_autoload_register($callback);
 	}
 	
-	public static function cleanInput() {
-		/* undo magic quotes */
-		if (get_magic_quotes_gpc()) {
-		    $process = array(&$_GET, &$_POST, &$_COOKIE, &$_REQUEST);
-		    while (list($key, $val) = each($process)) {
-		        foreach ($val as $k => $v) {
-		            unset($process[$key][$k]);
-		            if (is_array($v)) {
-		                $process[$key][stripslashes($k)] = $v;
-		                $process[] = &$process[$key][stripslashes($k)];
-		            } else {
-		                $process[$key][stripslashes($k)] = stripslashes($v);
-		            }
-		        }
-		    }
-		    unset($process);
-		}
-	}
-	
 	public static function loadConfig() {
-		Config::load();
-		Language::load();
-		setlocale(LC_ALL, Config::$config->general->locale);
 	}
 	
 	public static function init() {
 		self::setErrorHandler();
 		self::initAutoloader();
-		self::cleanInput();
 	}
 	
 	public static function load() {

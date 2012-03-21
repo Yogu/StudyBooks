@@ -2,17 +2,24 @@
 defined('IN_APP') or die;
 
 class Language {
-	public static $l;
+	private $values;
 	
-	public static function load() {
-		$locale = Config::$config->general->locale;
-		$fileName = ROOT_PATH . 'config/language.'.$locale.'.ini';
+	const DEFAULT_PATTERN = 'config/language.%.ini';
+	
+	public function __construct($fileName) {
 		if (!file_exists($fileName))
-			throw new Exception("Language file for locale " . $locale . " does not exist");
-		$strings = parse_ini_file($fileName);
-		if (!$strings)
-			throw new Exception("Corrupt language file for locale " . $locale);
-		self::$l = $strings;
+			throw new Exception("Language file ".$fileName." does not exist");
+		$this->values = parse_ini_file($fileName);
+		if (!$this->values)
+			throw new Exception("Corrupt language file: ".$fileName);
+	}
+	
+	public static function forLocale($locale) {
+		return new Language(str_replace('%', $locale, self::DEFAULT_PATTERN));
+	}
+	
+	public function __get($name) {
+		return $this->values[$name];
 	}
 }
 

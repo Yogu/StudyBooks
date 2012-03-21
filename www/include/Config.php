@@ -2,38 +2,32 @@
 defined('IN_APP') or die;
 
 class Config {
-	public static $config;
+	private $values;
+	private $fileName;
 	
-	public static function load() {
-		if (self::$config === null) {			
-			$config = self::loadFile();
-			self::$config = self::arrayToObject($config);
-			
-			$noDB = (defined('NO_DB') && NO_DB) || self::$config->general->isOffline;
-			if (!$noDB) {
-				$result = DataBase::query(
-					"SELECT name, value ".
-					"FROM ".self::$config->dataBase->prefix."config");
-				while ($row = mysql_fetch_array($result)) {
-					if (strpos($row['name'], '.')) {
-						list($category, $field) = explode('.', $row['name'], 2);
-						if (!array_key_exists($category, $config))
-							$config[$category] = array();
-						if (!isset($config[$category][$field]))
-							$config[$category][$field] = $row['value'];
-					} else
-						$config[$row['name']] = $row['value'];
-				}
-			}
-			
-			self::$config = self::arrayToObject($config);
-			
-			if (!$noDB) {
-				try {
-					DataBase::query("SET time_zone = 'UTC';");
-				} catch (Exception $e) {
-					
-				}
+	const DEFAULT_FILE_NAME = 'config/config.ini';
+	
+	public function __construct($fileName = null) {
+		$this->fileName = $fileName;
+		$this->loadFromFile();
+	}
+	
+	public static function createDefault() {
+		return new Config(ROOT_PATH . self::DEFAULT_FILE_NAME);
+	}
+	
+	private function loadFromFile() {	
+		$config = self::loadFile();
+		$this->values = self::arrayToObject($config);
+	}
+	
+	public function loadFromDatabase($db) {
+		if (!$this->general->isOffline) {
+			$result = $db->query(
+				"SELECT name, value ".
+				"FROM ".self::$config->dataBase->prefix."config");
+			while (list($name, $value) = mysql_fetch_array($result)) {
+				$this->$name = $value;
 			}
 		}
 	}
@@ -83,9 +77,9 @@ class Config {
 		return $new;
 	}
 	
-	public static function save($values) {
+	public function save($values) {
 		$res = array();
-		$values = self::objectToArray(self::deepMerge(self::arrayToObject(self::loadFile()), $values));
+		$values = self::objectToArray(self::deepMerge(self::arrayToObject(self::loadFile($this->fileName)), $values));
 		foreach($values as $key => $val) {
 			if(is_array($val)) {
 				$res[] = "[$key]";
@@ -94,14 +88,42 @@ class Config {
 			} else
 				$res[] = "$key = ".(is_numeric($val) ? $val : '"'.$val.'"');
 		}
-		FileInfo::safeFileRewrite(ROOT_PATH . 'config/config.ini', implode("\r\n", $res));
+		FileInfo::safeFileRewrite($this->fileName, implode("\r\n", $res));
 	}
 	
-	private static function loadFile() {
-		$config = parse_ini_file(ROOT_PATH . 'config/config.ini', true);
+	private function loadFile($fileName) {
+		$config = parse_ini_file($fileName, true);
 		if (!$config)
 			throw new Exception("Failed to load config file");
 		return $config;
+	}
+	
+	public function __get($name) {
+		if (strpos('.', $name) !== null) {
+			list($section, $key) = explode('.', $name, 2);
+		} else {
+			$section = $name;
+			$key = null;
+		}
+		
+		if (array_key_exists($section, $this->values)) {
+			$arr = $this->values[$section];
+			if ($key === null)
+				return $arr;
+			else if (array_key_exists($key, $arr))
+				return $arr[$key];
+			else
+				throw new Exception("Config section ".$section." does not contain the key ".$key);
+		} else
+			throw new Exception("Config section ".$section." does not exist");
+	}
+	
+	public function __set($name, $value) {
+		list($section, $key) = explode('.', $name, 2);
+		
+		if (!array_key_exists($section, $this->values))
+			$this->values[$section] = array();
+		$this->values[$section][$key] = $value;
 	}
 }
 

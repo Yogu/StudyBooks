@@ -3,13 +3,15 @@ defined('IN_APP') or die;
 
 class CookieManager {
 	private $array;
+	private $prefix;
 	
-	public function __construct(array $cookies) {
+	public function __construct(array $cookies, $prefix) {
 		$this->array = $cookies;
+		$this->prefix = $prefix;
 	}
 	
 	public function __get($name) {
-		$key = Config::$config->general->cookiePrefix.$name;
+		$key = $this->prefix.$name;
 		return isset($this->array[$key]) ? $this->array[$key] : null;
 	}
 	
@@ -18,7 +20,7 @@ class CookieManager {
 	}
 	
 	public function set($name, $value, $expire = 0) {
-		$name = Config::$config->general->cookiePrefix.$name;
+		$name = $this->prefix.$name;
 		$this->array[$name] = $value;
 
 		if (!$expire)

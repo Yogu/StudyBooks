@@ -53,9 +53,11 @@ if ($request->post('submit')) {
 		}
 	}
 	
+	$data = new stdclass();
+	
 	if ($errors) {
 		$response = new View($request, 'setup', 'Setup');
-		$request->data->errors = $errors;
+		$data->errors = $errors;
 		$response->send();
 	} else {
 		Config::$config->dataBase = $dataBase;
@@ -72,17 +74,17 @@ if ($request->post('submit')) {
 			setup($willDrop);
 			createAdmin($admin);
 			
-			$response = new View($request, 'success', 'Setup');
+			$response = new View($request, $data, 'success', 'Setup');
 			$response->send();
 		} else {
-			$response = new View($request, 'confirm', 'Setup');
-			$request->data->errors = $errors;
-			$request->data->willDrop = $willDrop;
-			$response->send();			
+			$data->errors = $errors;
+			$data->willDrop = $willDrop;
+			$response = new View($request, $data, 'confirm', 'Setup');
+			$response->send();
 		}
 	}
 } else {
-	$response = new View($request, 'setup', 'Setup');
+	$response = new View($request, null, 'setup', 'Setup');
 	$response->send();
 }
 

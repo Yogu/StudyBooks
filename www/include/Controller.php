@@ -30,7 +30,7 @@ class Controller {
 
 	public function __construct(Request $request) {
 		$this->request = $request;
-		$this->data = $request->data;
+		$this->data = new stdclass();
 	}
 
 	protected function redirectToURL($url, $code = 303) {
@@ -51,15 +51,15 @@ class Controller {
 			$action = $this->request->action;
 		if (!$controller)
 			$controller = $this->request->controller;
-		return new View($this->request, $action, $controller);
+		return new View($this->request, $this->data, $action, $controller);
 	}
 
 	public static function getController(Request $request, $name) {
-		$className = $name.'Controller';
+		$className = strtolower($name.'Controller');
 		$controllers = self::getControllers();
 		// Correct case
-		$className = $controllers[strtolower($className)];
-		if (isset($className)) {
+		if (isset($controllers[$className])) {
+			$className = $controllers[$className];
 			$reflection = new ReflectionClass($className);
 			if ($reflection->isSubclassOf('Controller'))
 			return new $className($request);
@@ -75,14 +75,14 @@ class Controller {
 		if (!$this->request->session)
 			return $this->view('login', 'account');
 		if ($this->request->user->role == 'guest')
-			return new View($this->request, '403', 'errors', 403);
+			return new View($this->request, $this->data, '403', 'errors', 403);
 	}
 
 	protected function requireAdmin() {
 		if (!$this->request->session)
 			return $this->view('login', 'account');
 		if ($this->request->user->role != 'admin')
-			return new View($this->request, '403', 'errors', 403);
+			return new View($this->request, $this->data, '403', 'errors', 403);
 	}
 }
 

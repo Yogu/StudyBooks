@@ -4,7 +4,7 @@
 		<meta charset="utf-8" />		
 		<meta http-equiv="Content-Script-Type" content="text/javascript" />
 		<meta http-equiv="Content-Style-Type" content="text/css" />
-		<base href="{html $rootURL}" />
+		<base href="{html $request->rootURL}" />
 	
 		<?php
 			$stylesheets = array('reset.css', 'general.css', 'layout.css', 'elements.css');

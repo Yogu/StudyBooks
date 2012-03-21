@@ -11,11 +11,11 @@ class View extends Response {
 
 	private static $dwoo;
 
-	public function __construct(Request $request, $action, $controller, $statusCode = '200') {
+	public function __construct(Request $request, $data, $action, $controller, $statusCode = '200') {
 		$this->request = $request;
 		$this->action = $action;
 		$this->controller = $controller;
-		$this->data = $request->data;
+		$this->data = is_object($data) ? $data : (object)$data;
 		$this->statusCode = $statusCode;
 		$this->fileName = ROOT_PATH.'views/'.strtolower($controller).'/'.$action.'.tpl';
 	}
@@ -40,6 +40,8 @@ class View extends Response {
 		$tpl = new Dwoo_Template_File($this->fileName);
 		$data = new Dwoo_Data();
 		$data->setData((array)$this->data);
+		$data->assign('request', $request);
+		$data->assign('config', Config::$config);
 		return $dwoo->get($tpl, $data);
 		
 		/*ob_start();

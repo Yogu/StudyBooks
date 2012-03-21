@@ -121,7 +121,8 @@ class FileInfo {
 			if ($canWrite) {
 				fwrite($fp, $dataToSave);
 				flock($fp, LOCK_UN);
-			}
+			} else
+				throw new Exception('Unable to safely rewrite file ' . $fileName . ' because it is locked by another application');
 			fclose($fp);
 		}
 	}
